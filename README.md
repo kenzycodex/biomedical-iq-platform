@@ -7,7 +7,6 @@ Welcome to Biomedical IQ, an open-source platform dedicated to the maintenance, 
 ## Website Overview
 
 Biomedical IQ provides a user-friendly interface for managing healthcare equipment, with a robust dashboard for user operations, secure account management, and verification tools. We empower healthcare professionals with a comprehensive solution for equipment tracking and maintenance.
-
 ## Features
 
 ### User Authentication
