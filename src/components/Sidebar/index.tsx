@@ -47,7 +47,7 @@ const menuGroups = [
         ),
         label: "Dashboard",
         route: "#",
-        children: [{ label: "eCommerce", route: "/" }],
+        children: [{ label: "Home", route: "/" }],
       },
       {
         icon: (
@@ -316,6 +316,7 @@ const menuGroups = [
         children: [
           { label: "Sign In", route: "/auth/signin" },
           { label: "Sign Up", route: "/auth/signup" },
+          { label: "Reset Password", route: "/auth/forgotpass" },
         ],
       },
     ],
