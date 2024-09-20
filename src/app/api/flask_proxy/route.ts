@@ -1,11 +1,11 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import axios from 'axios';
 
 const FLASK_API_URL = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
 
-console.log('FLASK_API_URL:', FLASK_API_URL);  // Log the API URL
+console.log('FLASK_API_URL:', FLASK_API_URL);
 
-// Helper function to refresh the access token
 async function refreshAccessToken(refreshToken: string) {
   try {
     const response = await axios.post(`${FLASK_API_URL}/refresh`, {}, {
@@ -20,15 +20,15 @@ async function refreshAccessToken(refreshToken: string) {
   }
 }
 
-export async function POST(req: NextApiRequest, res: NextApiResponse) {
-  const { method, url, headers, body } = await req.json();
+export async function POST(request: NextRequest) {
+  const { method, url, headers, body } = await request.json();
   const flaskPath = url?.replace("/api/flask_proxy", "") || "";
   const fullUrl = `${FLASK_API_URL}${flaskPath}`;
 
-  console.log('Proxying request to:', fullUrl);  // Log the full URL
+  console.log('Proxying request to:', fullUrl);
 
   let accessToken = headers.authorization?.split(" ")[1];
-  const refreshToken = req.cookies.refreshToken;
+  const refreshToken = request.cookies.get('refreshToken')?.value;
 
   const config = {
     method: method as any,
@@ -41,52 +41,58 @@ export async function POST(req: NextApiRequest, res: NextApiResponse) {
   };
 
   try {
-    console.log('Sending request with config:', JSON.stringify(config, null, 2));  // Log the request config
+    console.log('Sending request with config:', JSON.stringify(config, null, 2));
     const response = await axios(config);
-    console.log('Received response:', response.data);  // Log the response
+    console.log('Received response:', response.data);
+
+    let nextResponse = NextResponse.json(response.data, { status: response.status });
 
     if (flaskPath === "/register" || flaskPath === "/google-signin") {
       if (response.data.refresh_token) {
-        res.setHeader('Set-Cookie', `refreshToken=${response.data.refresh_token}; HttpOnly; Secure; SameSite=Strict; Max-Age=${7 * 24 * 60 * 60}; Path=/`);
+        nextResponse.cookies.set('refreshToken', response.data.refresh_token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60,
+          path: '/'
+        });
       }
-      res.setHeader('X-User-Data', JSON.stringify(response.data.user));
-      res.setHeader('X-Access-Token', response.data.access_token);
+      nextResponse.headers.set('X-User-Data', JSON.stringify(response.data.user));
+      nextResponse.headers.set('X-Access-Token', response.data.access_token);
     }
 
-    return res.status(response.status).json(response.data);
+    return nextResponse;
   } catch (error) {
-    console.error('Error in Flask proxy:', error);  // Log any errors
+    console.error('Error in Flask proxy:', error);
     if (axios.isAxiosError(error)) {
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         if (error.response.status === 401 && refreshToken) {
           const newAccessToken = await refreshAccessToken(refreshToken);
           if (newAccessToken) {
             config.headers.Authorization = `Bearer ${newAccessToken}`;
             try {
               const retryResponse = await axios(config);
-              return res.status(retryResponse.status).json(retryResponse.data);
+              return NextResponse.json(retryResponse.data, { status: retryResponse.status });
             } catch (retryError) {
               if (axios.isAxiosError(retryError) && retryError.response) {
-                return res.status(retryError.response.status).json(retryError.response.data);
+                return NextResponse.json(retryError.response.data, { status: retryError.response.status });
               } else {
-                return res.status(500).json({ error: "An unexpected error occurred" });
+                return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
               }
             }
           } else {
-            return res.status(401).json({ error: "Authentication failed" });
+            return NextResponse.json({ error: "Authentication failed" }, { status: 401 });
           }
         } else {
-          return res.status(error.response.status).json(error.response.data);
+          return NextResponse.json(error.response.data, { status: error.response.status });
         }
       } else if (error.request) {
-        return res.status(500).json({ error: "No response received from the server" });
+        return NextResponse.json({ error: "No response received from the server" }, { status: 500 });
       } else {
-        return res.status(500).json({ error: "An error occurred while processing your request" });
+        return NextResponse.json({ error: "An error occurred while processing your request" }, { status: 500 });
       }
     } else {
-      return res.status(500).json({ error: "An unexpected error occurred" });
+      return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
     }
   }
 }

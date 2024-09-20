@@ -1,3 +1,5 @@
+import { IconType } from 'react-icons';
+
 export type CardItemProps = {
   imageSrc?: string;
   name?: string;
@@ -6,3 +8,10 @@ export type CardItemProps = {
   cardTitle?: string;
   cardContent?: string;
 };
+
+export interface NotificationCardItemProps extends CardItemProps {
+  icon?: IconType;
+  timeSent?: string;
+  category?: string;
+  isRead?: boolean;
+}

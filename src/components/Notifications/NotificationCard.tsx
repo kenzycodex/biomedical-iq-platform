@@ -1,9 +1,17 @@
 import Link from "next/link";
 import { useState } from "react";
 import { FaBell, FaCheckCircle, FaUser } from "react-icons/fa";
-import { CardItemProps } from "@/types/cards"; // Import the CardItemProps type
+import { CardItemProps } from "@/types/cards";
 
-const notificationData: CardItemProps[] = [
+// Extend the CardItemProps interface to include the missing properties
+interface NotificationCardProps extends CardItemProps {
+  icon: React.ComponentType;
+  timeSent: string;
+  category: string;
+  isRead: boolean;
+}
+
+const notificationData: NotificationCardProps[] = [
   {
     icon: FaBell,
     cardTitle: "New Message from Dr. Jane",
@@ -38,13 +46,15 @@ const notificationData: CardItemProps[] = [
   },
 ];
 
-const NotificationCard = () => {
-  const [notifications, setNotifications] = useState(notificationData);
+const NotificationCard: React.FC = () => {
+  const [notifications, setNotifications] = useState<NotificationCardProps[]>(notificationData);
 
   const handleNotificationClick = (index: number) => {
-    const updatedNotifications = [...notifications];
-    updatedNotifications[index].isRead = true;
-    setNotifications(updatedNotifications);
+    setNotifications(prevNotifications => 
+      prevNotifications.map((notification, i) => 
+        i === index ? { ...notification, isRead: true } : notification
+      )
+    );
   };
 
   return (
@@ -54,37 +64,40 @@ const NotificationCard = () => {
       </h4>
 
       <div>
-        {notifications.map((notification, index) => (
-          <Link
-            href="#" // Replace with appropriate URL or leave empty for now
-            className={`flex items-center gap-5 px-7.5 py-3 hover:bg-gray-3 dark:hover:bg-meta-4 ${
-              !notification.isRead ? "bg-gray-100 dark:bg-gray-700" : ""
-            }`}
-            key={index}
-            onClick={() => handleNotificationClick(index)}
-          >
-            <div className="text-xl text-gray-500 dark:text-gray-400">
-              <notification.icon />
-            </div>
-
-            <div className="flex flex-1 items-center justify-between">
-              <div>
-                <h5 className="font-medium text-black dark:text-white">
-                  {notification.cardTitle}
-                </h5>
-                <p>
-                  <span className="text-sm text-black dark:text-white">
-                    {notification.cardContent}
-                  </span>
-                  <span className="text-xs"> . {notification.timeSent}</span>
-                </p>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {notification.category}
-                </span>
+        {notifications.map((notification, index) => {
+          const IconComponent = notification.icon;
+          return (
+            <Link
+              href="#"
+              className={`flex items-center gap-5 px-7.5 py-3 hover:bg-gray-3 dark:hover:bg-meta-4 ${
+                !notification.isRead ? "bg-gray-100 dark:bg-gray-700" : ""
+              }`}
+              key={index}
+              onClick={() => handleNotificationClick(index)}
+            >
+              <div className="text-xl text-gray-500 dark:text-gray-400">
+                <IconComponent />
               </div>
-            </div>
-          </Link>
-        ))}
+
+              <div className="flex flex-1 items-center justify-between">
+                <div>
+                  <h5 className="font-medium text-black dark:text-white">
+                    {notification.cardTitle}
+                  </h5>
+                  <p>
+                    <span className="text-sm text-black dark:text-white">
+                      {notification.cardContent}
+                    </span>
+                    <span className="text-xs"> . {notification.timeSent}</span>
+                  </p>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {notification.category}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
