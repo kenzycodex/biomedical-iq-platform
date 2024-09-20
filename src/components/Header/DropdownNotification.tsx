@@ -1,6 +1,34 @@
 import { useState } from "react";
 import Link from "next/link";
+import { FaBell, FaCheckCircle, FaUser } from "react-icons/fa";
 import ClickOutside from "@/components/ClickOutside";
+
+const dropdownNotifications = [
+  {
+    icon: FaBell,
+    message: "Edit your information in a swipe",
+    time: "12 May, 2025",
+    category: "info",
+  },
+  {
+    icon: FaCheckCircle,
+    message: "It is a long established fact",
+    time: "24 Feb, 2025",
+    category: "update",
+  },
+  {
+    icon: FaUser,
+    message: "There are many variations",
+    time: "04 Jan, 2025",
+    category: "alert",
+  },
+  {
+    icon: FaBell,
+    message: "There are many variations",
+    time: "01 Dec, 2024",
+    category: "info",
+  },
+];
 
 const DropdownNotification = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -42,7 +70,7 @@ const DropdownNotification = () => {
 
         {dropdownOpen && (
           <div
-            className={`absolute -right-27 mt-2.5 flex h-90 w-75 flex-col rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark sm:right-0 sm:w-80`}
+            className={`absolute -right-24 mt-2.5 flex h-90 w-75 flex-col rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark sm:right-0 sm:w-80`}
           >
             <div className="px-4.5 py-3">
               <h5 className="text-sm font-medium text-bodydark2">
@@ -51,69 +79,28 @@ const DropdownNotification = () => {
             </div>
 
             <ul className="flex h-auto flex-col overflow-y-auto">
-              <li>
-                <Link
-                  className="flex flex-col gap-2.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
-                  href="#"
-                >
-                  <p className="text-sm">
-                    <span className="text-black dark:text-white">
-                      Edit your information in a swipe
-                    </span>{" "}
-                    Sint occaecat cupidatat non proident, sunt in culpa qui
-                    officia deserunt mollit anim.
-                  </p>
-
-                  <p className="text-xs">12 May, 2025</p>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  className="flex flex-col gap-2.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
-                  href="#"
-                >
-                  <p className="text-sm">
-                    <span className="text-black dark:text-white">
-                      It is a long established fact
-                    </span>{" "}
-                    that a reader will be distracted by the readable.
-                  </p>
-
-                  <p className="text-xs">24 Feb, 2025</p>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  className="flex flex-col gap-2.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
-                  href="#"
-                >
-                  <p className="text-sm">
-                    <span className="text-black dark:text-white">
-                      There are many variations
-                    </span>{" "}
-                    of passages of Lorem Ipsum available, but the majority have
-                    suffered
-                  </p>
-
-                  <p className="text-xs">04 Jan, 2025</p>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  className="flex flex-col gap-2.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
-                  href="#"
-                >
-                  <p className="text-sm">
-                    <span className="text-black dark:text-white">
-                      There are many variations
-                    </span>{" "}
-                    of passages of Lorem Ipsum available, but the majority have
-                    suffered
-                  </p>
-
-                  <p className="text-xs">01 Dec, 2024</p>
-                </Link>
-              </li>
+              {dropdownNotifications.map((notification, index) => (
+                <li key={index}>
+                  <Link
+                    className="flex items-center justify-between gap-2.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
+                    href="#"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="text-xl text-gray-500 dark:text-gray-400">
+                        <notification.icon />
+                      </div>
+                      <p className="text-sm">
+                        <span className="text-black dark:text-white">
+                          {notification.message}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {notification.time}
+                    </div>
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
         )}

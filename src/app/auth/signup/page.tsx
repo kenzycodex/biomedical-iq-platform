@@ -1,18 +1,122 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-
-import { Metadata } from "next";
 import DefaultLayout from "@/components/Layouts/DefaultLayout";
+import { Alert, AlertDescription } from '@/components/UI/alerts';
+import { Loader2 } from "lucide-react";
+import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 
-export const metadata: Metadata = {
-  title: "Biomedical IQ - Sign In",
-  description: "This is SignUp Page Biomedical IQ Platform",
-  // other metadata
-};
+// Validation schema using Yup
+const schema = yup.object().shape({
+  full_name: yup.string().required("Full name is required"),
+  email: yup.string().email("Invalid email").required("Email is required"),
+  phone_number: yup.string().required("Phone number is required"),
+  organization: yup.string().required("Organization is required"),
+  address: yup.string().required("Address is required"),
+  password: yup
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+      "Password must contain uppercase, lowercase, number, and special character"
+    )
+    .required("Password is required"),
+  confirm_password: yup
+    .string()
+    .oneOf([yup.ref("password")], "Passwords must match")
+    .required("Confirm password is required"),
+});
 
 const SignUp: React.FC = () => {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+  });
+
+  // Handle normal signup
+  const onSubmit = async (data: any) => {
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await axios.post('/api/flask_proxy/register', data);
+      setSuccess("Registration successful. Please check your email for verification.");
+      setTimeout(() => router.push("/auth/signin"), 3000);
+    } catch (err: any) {
+      if (axios.isAxiosError(err)) {
+        if (err.response) {
+          // The request was made and the server responded with a status code
+          // that falls out of the range of 2xx
+          setError(err.response.data.error || "An unexpected error occurred. Please try again.");
+        } else if (err.request) {
+          // The request was made but no response was received
+          setError("No response received from the server. Please try again later.");
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          setError("An error occurred while processing your request. Please try again.");
+        }
+      } else {
+        setError("An unexpected error occurred. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle Google Sign-Up
+  const handleGoogleSignUp = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      setError(null);
+      setSuccess(null);
+
+      try {
+        const response = await axios.post('/api/flask_proxy/google-signin', {
+          token: tokenResponse.access_token
+        });
+        console.log('Google Sign-In Response:', response.data);
+        setSuccess("Google Sign-In successful. Redirecting to dashboard...");
+        setTimeout(() => router.push("/dashboard"), 2000);
+      } catch (err: any) {
+        console.error('Google Sign-In Error:', err);
+        if (axios.isAxiosError(err)) {
+          if (err.response) {
+            setError(err.response.data.error || "Google Sign-In failed. Please try again.");
+          } else if (err.request) {
+            setError("No response received from the server. Please try again later.");
+          } else {
+            setError("An error occurred during Google Sign-In. Please try again.");
+          }
+        } else {
+          setError("An unexpected error occurred during Google Sign-In. Please try again.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: (error) => {
+      console.error("Google Sign-In Error:", error);
+      setError("Google Sign-In failed. Please try again.");
+    },
+  });
+      
   return (
     <DefaultLayout>
       <Breadcrumb pageName="Sign Up" />
@@ -172,18 +276,34 @@ const SignUp: React.FC = () => {
               <h2 className="mb-9 text-2xl font-bold text-black dark:text-white sm:text-title-x11">
                 Sign Up to Biomedical IQ
               </h2>
+              
+               {/* Display error and success messages */}
+              {error && (
+                <Alert variant="destructive" autoDismiss={true} dismissTimeout={50000}>
+                  <p>{error}</p>
+                </Alert>
+              )}
+              {success && (
+                <Alert variant="success" autoDismiss={true} dismissTimeout={5000}>
+                  <p>{success}</p>
+                </Alert>
+              )}
 
-              <form>
+              <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="mb-4">
                   <label className="mb-2.5 block font-medium text-black dark:text-white">
-                    Organization
+                    Full Name
                   </label>
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="Enter your organization name"
+                      placeholder="Enter your full name"
+                       {...register("full_name")}
                       className="w-full rounded-lg border border-stroke bg-transparent py-4 pl-6 pr-10 text-black outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
                     />
+                     {errors.full_name && (
+                    <p className="text-red-500 text-sm mt-1">{errors.full_name.message}</p>
+                  )}
 
                     <span className="absolute right-4 top-4">
                       <svg
@@ -217,8 +337,12 @@ const SignUp: React.FC = () => {
                     <input
                       type="email"
                       placeholder="Enter your email"
+                       {...register("email")}
                       className="w-full rounded-lg border border-stroke bg-transparent py-4 pl-6 pr-10 text-black outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
                     />
+                     {errors.email && (
+                    <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+                  )}
 
                     <span className="absolute right-4 top-4">
                       <svg
@@ -248,8 +372,12 @@ const SignUp: React.FC = () => {
                     <input
                       type="tel"
                       placeholder="Enter your phone number"
+                       {...register("phone_number")}
                       className="w-full rounded-lg border border-stroke bg-transparent py-4 pl-6 pr-10 text-black outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
                     />
+                     {errors.phone_number && (
+                    <p className="text-red-500 text-sm mt-1">{errors.phone_number.message}</p>
+                  )}
                     <span className="absolute right-4 top-4">
                       <svg
                         className="fill-current"
@@ -278,8 +406,12 @@ const SignUp: React.FC = () => {
                     <input
                       type="text"
                       placeholder="Enter your organization"
+                       {...register("organization")}
                       className="w-full rounded-lg border border-stroke bg-transparent py-4 pl-6 pr-10 text-black outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
                     />
+                     {errors.organization && (
+                    <p className="text-red-500 text-sm mt-1">{errors.organization.message}</p>
+                  )}
                     <span className="absolute right-4 top-4">
                       <svg
                         className="fill-current"
@@ -308,8 +440,12 @@ const SignUp: React.FC = () => {
                     <input
                       type="text"
                       placeholder="Enter your address"
+                       {...register("address")}
                       className="w-full rounded-lg border border-stroke bg-transparent py-4 pl-6 pr-10 text-black outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
                     />
+                     {errors.address && (
+                    <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>
+                  )}
                     <span className="absolute right-4 top-4">
                       <svg
                         className="fill-current"
@@ -338,9 +474,12 @@ const SignUp: React.FC = () => {
                     <input
                       type="password"
                       placeholder="Enter your password"
+                       {...register("password")}
                       className="w-full rounded-lg border border-stroke bg-transparent py-4 pl-6 pr-10 text-black outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
                     />
-
+                     {errors.password && (
+                    <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+                  )}
                     <span className="absolute right-4 top-4">
                       <svg
                         className="fill-current"
@@ -373,8 +512,12 @@ const SignUp: React.FC = () => {
                     <input
                       type="password"
                       placeholder="Re-enter your password"
+                       {...register("confirm_password")}
                       className="w-full rounded-lg border border-stroke bg-transparent py-4 pl-6 pr-10 text-black outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
                     />
+                     {errors.confirm_password && (
+                    <p className="text-red-500 text-sm mt-1">{errors.confirm_password.message}</p>
+                  )}
 
                     <span className="absolute right-4 top-4">
                       <svg
@@ -401,14 +544,20 @@ const SignUp: React.FC = () => {
                 </div>
 
                 <div className="mb-5">
-                  <input
-                    type="submit"
-                    value="Create account"
-                    className="w-full cursor-pointer rounded-lg border border-primary bg-primary p-4 text-white transition hover:bg-opacity-90"
-                  />
-                </div>
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full cursor-pointer rounded-lg border border-primary bg-primary p-4 text-white transition hover:bg-opacity-90 disabled:opacity-50"
+                    >
+                     {isLoading ? <Loader2 className="animate-spin" /> : "Create account"}
+                    </button>
+                  </div>
 
-                <button className="flex w-full items-center justify-center gap-3.5 rounded-lg border border-stroke bg-gray p-4 hover:bg-opacity-50 dark:border-strokedark dark:bg-meta-4 dark:hover:bg-opacity-50">
+                <button 
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => handleGoogleSignUp()} 
+                  className="flex w-full items-center justify-center gap-3.5 rounded-lg border border-stroke bg-gray p-4 hover:bg-opacity-50 dark:border-strokedark dark:bg-meta-4 dark:hover:bg-opacity-50">
                   <span>
                     <svg
                       width="20"
@@ -444,21 +593,21 @@ const SignUp: React.FC = () => {
                   </span>
                   Sign up with Google
                 </button>
-
+          
                 <div className="mt-6 text-center">
-                  <p>
-                    Already have an account?{" "}
-                    <Link href="/auth/signin" className="text-primary">
-                      Sign in
-                    </Link>
-                  </p>
-                </div>
-              </form>
+                    <p>
+                      Already have an account?{" "}
+                      <Link href="/auth/signin" className="text-primary">
+                        Sign in
+                      </Link>
+                    </p>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </DefaultLayout>
+      </DefaultLayout>
   );
 };
 
