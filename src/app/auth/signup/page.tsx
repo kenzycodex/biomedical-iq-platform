@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
@@ -35,6 +35,17 @@ const schema = yup.object().shape({
     .required("Confirm password is required"),
 });
 
+// Form data type
+interface FormData {
+  full_name: string;         // Full Name
+  email: string;             // Email
+  phone_number: string;      // Phone number
+  organization: string;     // Optional Organization
+  address: string;          // Optional Address
+  password: string;          // Password
+  confirm_password: string;  // Confirm Password for validation
+}
+
 const SignUp: React.FC = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -45,31 +56,39 @@ const SignUp: React.FC = () => {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm({
+  } = useForm<FormData>({
     resolver: yupResolver(schema),
   });
 
   // Handle normal signup
-  const onSubmit = async (data: any) => {
+  const onSubmit: SubmitHandler<FormData> = async (data) => {
     setIsLoading(true);
     setError(null);
     setSuccess(null);
 
     try {
-      const response = await axios.post('/api/flask_proxy/register', data);
-      setSuccess("Registration successful. Please check your email for verification.");
+      // POST request to the proxy route with registration data
+      const response = await axios.post("/api/flask_proxy", {
+        method: "POST",
+        url: "/auth/register",
+        body: data,
+      });
+
+      setSuccess(
+        "Registration successful. Please check your email for verification."
+      );
       setTimeout(() => router.push("/auth/signin"), 3000);
     } catch (err: any) {
+      console.error("Registration Error:", err);
       if (axios.isAxiosError(err)) {
         if (err.response) {
-          // The request was made and the server responded with a status code
-          // that falls out of the range of 2xx
-          setError(err.response.data.error || "An unexpected error occurred. Please try again.");
+          setError(
+            err.response.data.error ||
+              "An unexpected error occurred. Please try again."
+          );
         } else if (err.request) {
-          // The request was made but no response was received
           setError("No response received from the server. Please try again later.");
         } else {
-          // Something happened in setting up the request that triggered an Error
           setError("An error occurred while processing your request. Please try again.");
         }
       } else {
@@ -88,17 +107,23 @@ const SignUp: React.FC = () => {
       setSuccess(null);
 
       try {
-        const response = await axios.post('/api/flask_proxy/google-signin', {
-          token: tokenResponse.access_token
+        // POST request to the proxy route for Google sign-in
+        const response = await axios.post("/api/flask_proxy", {
+          method: "POST",
+          url: "/auth/google-signin",
+          body: { token: tokenResponse.access_token },
         });
-        console.log('Google Sign-In Response:', response.data);
+
+        console.log("Google Sign-In Response:", response.data);
         setSuccess("Google Sign-In successful. Redirecting to dashboard...");
         setTimeout(() => router.push("/dashboard"), 2000);
       } catch (err: any) {
-        console.error('Google Sign-In Error:', err);
+        console.error("Google Sign-In Error:", err);
         if (axios.isAxiosError(err)) {
           if (err.response) {
-            setError(err.response.data.error || "Google Sign-In failed. Please try again.");
+            setError(
+              err.response.data.error || "Google Sign-In failed. Please try again."
+            );
           } else if (err.request) {
             setError("No response received from the server. Please try again later.");
           } else {
@@ -593,6 +618,9 @@ const SignUp: React.FC = () => {
                   </span>
                   Sign up with Google
                 </button>
+                {/* Error and Success Messages */}
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {success && <p style={{ color: 'green' }}>{success}</p>}
           
                 <div className="mt-6 text-center">
                     <p>

@@ -8,6 +8,10 @@ const nextConfig = {
     }
     return config
   },
+  env: {
+    NEXT_PUBLIC_FLASK_API_URL: process.env.NEXT_PUBLIC_FLASK_API_URL,
+    NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+  },
 }
 
 export default nextConfig;
