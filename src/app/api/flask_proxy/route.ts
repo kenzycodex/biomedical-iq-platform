@@ -2,12 +2,10 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-// Set the Flask API URL from environment variables or use a default
 const FLASK_API_URL = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
 
 console.log('FLASK_API_URL:', FLASK_API_URL);
 
-// Function to refresh access tokens
 async function refreshAccessToken(refreshToken: string) {
   try {
     const response = await axios.post(`${FLASK_API_URL}/auth/refresh`, {}, {
@@ -22,12 +20,10 @@ async function refreshAccessToken(refreshToken: string) {
   }
 }
 
-// Proxy POST requests to Flask API
 export async function POST(request: NextRequest) {
   try {
-    // Get body and construct URL for Flask
     const { body } = await request.json();
-    const flaskPath = "/auth/register";  // Set the proper Flask endpoint
+    const flaskPath = "/auth/register";
     const fullUrl = `${FLASK_API_URL}${flaskPath}`;
 
     console.log('Proxying POST request to:', fullUrl);
@@ -35,37 +31,32 @@ export async function POST(request: NextRequest) {
     const accessToken = request.headers.get('Authorization')?.split(" ")[1];
     const refreshToken = request.cookies.get('refreshToken')?.value;
 
-    // Axios config for POST request
     const config = {
-      method: 'POST',  // Explicit method
+      method: 'POST',
       url: fullUrl,
       headers: {
         'Content-Type': 'application/json',
-        ...(accessToken && { Authorization: `Bearer ${accessToken}` }),  // Use access token if available
+        ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
       },
-      data: body,  // Send the body as-is
+      data: body,
     };
 
-    // Send the request to Flask API
     console.log('Sending POST request with config:', JSON.stringify(config, null, 2));
     const response = await axios(config);
     console.log('Received response from Flask:', response.data);
 
-    // Create the response object to send back to the client
     let nextResponse = NextResponse.json(response.data, { status: response.status });
 
-    // Handle setting tokens and headers for authentication routes
-    if (flaskPath === "/auth/register" || flaskPath === "/auth/google-signin") {
+    if (flaskPath === "/auth/register") {
       if (response.data.refresh_token) {
         nextResponse.cookies.set('refreshToken', response.data.refresh_token, {
           httpOnly: true,
           secure: true,
           sameSite: 'strict',
-          maxAge: 7 * 24 * 60 * 60,  // 1 week expiration
+          maxAge: 7 * 24 * 60 * 60,
           path: '/'
         });
       }
-      // Set additional headers with user info and tokens
       nextResponse.headers.set('X-User-Data', JSON.stringify(response.data.user));
       nextResponse.headers.set('X-Access-Token', response.data.access_token);
     }
@@ -75,7 +66,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in Flask POST proxy:', error);
 
-    // Handle 401 and refresh token if necessary
     if (axios.isAxiosError(error)) {
       if (error.response && error.response.status === 401) {
         const refreshToken = request.cookies.get('refreshToken')?.value;
@@ -95,7 +85,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Proxy GET requests to Flask API
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const flaskPath = url.pathname.replace("/api/flask_proxy", "");
@@ -106,13 +95,12 @@ export async function GET(request: NextRequest) {
   const accessToken = request.headers.get('Authorization')?.split(" ")[1];
   const refreshToken = request.cookies.get('refreshToken')?.value;
 
-  // Axios config for GET request
   const config = {
     method: 'GET',
     url: fullUrl,
     headers: {
       'Content-Type': 'application/json',
-      ...(accessToken && { Authorization: `Bearer ${accessToken}` }),  // Use access token if available
+      ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
     },
   };
 
@@ -126,7 +114,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error in Flask GET proxy:', error);
 
-    // Handle 401 and refresh token if necessary
     if (axios.isAxiosError(error)) {
       if (error.response && error.response.status === 401) {
         const refreshToken = request.cookies.get('refreshToken')?.value;
@@ -146,10 +133,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Retry request with new access token after refreshing
 async function retryRequestWithNewAccessToken(request: NextRequest, newAccessToken: string) {
   const { body } = await request.json();
-  const flaskPath = "/auth/google-signin";  // Adjust the route for retries
+  const flaskPath = "/auth/register";
   const fullUrl = `${FLASK_API_URL}${flaskPath}`;
 
   const config = {
@@ -159,7 +145,7 @@ async function retryRequestWithNewAccessToken(request: NextRequest, newAccessTok
       'Content-Type': 'application/json',
       Authorization: `Bearer ${newAccessToken}`,
     },
-    data: body,  // Send the original body
+    data: body,
   };
 
   try {
@@ -171,7 +157,6 @@ async function retryRequestWithNewAccessToken(request: NextRequest, newAccessTok
   }
 }
 
-// Handle Axios error responses
 function handleAxiosError(error: any) {
   if (axios.isAxiosError(error)) {
     if (error.response) {

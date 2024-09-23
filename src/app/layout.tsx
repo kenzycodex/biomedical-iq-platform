@@ -1,3 +1,5 @@
+// layout.tsx
+
 "use client";
 import "jsvectormap/dist/jsvectormap.css";
 import "flatpickr/dist/flatpickr.min.css";
@@ -10,20 +12,21 @@ import { SessionProvider } from "next-auth/react";
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  const [loading, setLoading] = useState<boolean>(true);
+}) {
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setTimeout(() => setLoading(false), 1000);
+    const timeout = setTimeout(() => setLoading(false), 1000);
+    return () => clearTimeout(timeout);
   }, []);
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   if (!googleClientId) {
-    console.error('Google Client ID is not defined');
-    return null;
+    console.error("Google Client ID is not defined");
+    return <Loader />; // Returning Loader while handling the error
   }
 
   return (

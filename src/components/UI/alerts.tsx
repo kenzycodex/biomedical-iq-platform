@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion'; // Import Framer Motion
 
 interface AlertProps {
   variant?: 'default' | 'destructive' | 'success';
@@ -8,7 +9,7 @@ interface AlertProps {
   onDismiss?: () => void;  // Callback for when the alert is dismissed
 }
 
-// Named export for the Alert component
+// Updated Alert component with Framer Motion animations
 export const Alert: React.FC<AlertProps> = ({
   variant = 'default',
   children,
@@ -39,7 +40,14 @@ export const Alert: React.FC<AlertProps> = ({
   if (!visible) return null;
 
   return (
-    <div className={`${baseStyles} ${variantStyles[variant]}`} role="alert">
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}    // Starting state: hidden and shifted upwards
+      animate={{ opacity: 1, y: 0 }}      // Ending state: visible and back to original position
+      exit={{ opacity: 0, y: -20 }}       // Exit state: fade out and shift upwards
+      transition={{ duration: 0.5 }}      // Animation duration
+      className={`${baseStyles} ${variantStyles[variant]}`}
+      role="alert"
+    >
       <div className="flex items-center">
         <div className="mr-3">
           {variant === 'destructive' && (
@@ -63,11 +71,6 @@ export const Alert: React.FC<AlertProps> = ({
         </div>
         <div>{children}</div>
       </div>
-    </div>
+    </motion.div>
   );
-};
-
-// Named export for AlertDescription component
-export const AlertDescription: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <div className="text-sm">{children}</div>;
 };
