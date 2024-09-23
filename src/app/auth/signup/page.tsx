@@ -536,8 +536,8 @@ const SignUp: React.FC = () => {
                   </div>
                 
                 {/* Error and Success Messages */}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {success && <p style={{ color: 'green' }}>{success}</p>}
+                {error && <p style={{ color: 'red' }}>{error}</p>}
+                {success && <p style={{ color: 'green' }}>{success}</p>}
           
                 <div className="mt-6 text-center">
                     <p>
