@@ -122,21 +122,21 @@ const Profile = () => {
               <div className="mx-auto mb-5.5 mt-4.5 grid max-w-94 grid-cols-3 rounded-md border border-stroke py-2.5 shadow-1 dark:border-strokedark dark:bg-[#37404F]">
                 <div className="flex flex-col items-center justify-center gap-1 border-r border-stroke px-4 dark:border-strokedark xsm:flex-row">
                   <span className="font-semibold text-black dark:text-white">
-                    259
+                    50
                   </span>
-                  <span className="text-sm">Posts</span>
+                  <span className="text-sm">Equipments</span>
                 </div>
                 <div className="flex flex-col items-center justify-center gap-1 border-r border-stroke px-4 dark:border-strokedark xsm:flex-row">
                   <span className="font-semibold text-black dark:text-white">
-                    129K
+                    30
                   </span>
-                  <span className="text-sm">Followers</span>
+                  <span className="text-sm">Reports</span>
                 </div>
                 <div className="flex flex-col items-center justify-center gap-1 px-4 xsm:flex-row">
                   <span className="font-semibold text-black dark:text-white">
-                    2K
+                    100+
                   </span>
-                  <span className="text-sm">Following</span>
+                  <span className="text-sm">Plans</span>
                 </div>
               </div>
 
@@ -151,7 +151,7 @@ const Profile = () => {
 
               <div className="mt-6.5">
                 <h4 className="mb-3.5 font-medium text-black dark:text-white">
-                  Follow us on
+                  Connect With Us
                 </h4>
                 <div className="flex items-center justify-center gap-3.5">
                   <Link

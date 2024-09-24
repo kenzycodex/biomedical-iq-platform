@@ -1,14 +1,10 @@
+"use client";
+
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import { Metadata } from "next";
 import DefaultLayout from "@/components/Layouts/DefaultLayout";
-
-export const metadata: Metadata = {
-  title: "Biomedical IQ - Verify Code",
-  description: "This is the Verify 2FA Code page for Biomedical IQ Platform",
-};
 
 const VerifyCode: React.FC = () => {
   const [code, setCode] = useState<string[]>(["", "", "", "", "", ""]);
@@ -47,17 +43,17 @@ const VerifyCode: React.FC = () => {
       <div className="min-h-screen flex justify-center items-center bg-gray-100 dark:bg-boxdark">
         <div className="w-full max-w-md p-8 space-y-8 bg-white dark:bg-boxdark shadow-xl rounded-lg transform transition-all hover:shadow-2xl">
           <div className="text-center">
-            <Link href="/">
+            <Link className="mb-5.5 inline-block" href="/">
               <Image
-                className="mb-6 dark:hidden"
-                src={"/images/logo/logo-dark.svg"}
+                className="hidden dark:block"
+                src={"/images/logo/logo.svg"}
                 alt="Logo"
                 width={176}
                 height={32}
               />
               <Image
-                className="hidden dark:block"
-                src={"/images/logo/logo.svg"}
+                className="dark:hidden"
+                src={"/images/logo/logo-dark.svg"}
                 alt="Logo"
                 width={176}
                 height={32}
