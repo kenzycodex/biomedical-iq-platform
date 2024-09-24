@@ -10,7 +10,7 @@ import * as yup from "yup";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import DefaultLayout from "@/components/Layouts/DefaultLayout";
 import { Alert } from '@/components/UI/alerts';
-import { Loader2 } from "lucide-react";
+import { RingLoader } from 'react-spinners';
 import axios from 'axios';
 
 // Validation schema using Yup
@@ -73,11 +73,18 @@ const SignUp: React.FC = () => {
         body: data,
       });
 
-      setSuccess(
-        "Registration successful. Please check your email for verification."
-      );
-      // Redirecting to sign-in page upon success
-      setTimeout(() => router.push("/auth/verify"), 3000);
+      if (response.status === 201) {
+        setSuccess(
+          "Registration successful. Please check your email for verification."
+        );
+        // Redirecting to verification page upon success
+        setTimeout(() => router.push("/auth/verify"), 3000);
+      } else {
+        setError(
+          response.data.error ||
+            "An unexpected error occurred. Please try again."
+        );
+      }
     } catch (err: any) {
       console.error("Registration Error:", err);
       if (axios.isAxiosError(err)) {
@@ -261,12 +268,12 @@ const SignUp: React.FC = () => {
               
                {/* Display error and success messages */}
               {error && (
-                <Alert variant="destructive" autoDismiss={true} dismissTimeout={50000}>
+                <Alert variant="destructive" autoDismiss={true} dismissTimeout={20000}>
                   <p>{error}</p>
                 </Alert>
               )}
               {success && (
-                <Alert variant="success" autoDismiss={true} dismissTimeout={5000}>
+                <Alert variant="success" autoDismiss={true} dismissTimeout={2000}>
                   <p>{success}</p>
                 </Alert>
               )}
@@ -529,9 +536,20 @@ const SignUp: React.FC = () => {
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full cursor-pointer rounded-lg border border-primary bg-primary p-4 text-white transition hover:bg-opacity-90 disabled:opacity-50"
+                      className={`w-full cursor-pointer rounded-lg border border-primary bg-primary p-4 text-white transition hover:bg-opacity-90 disabled:opacity-50 ${isLoading ? "cursor-not-allowed" : ""}`}
                     >
-                     {isLoading ? <Loader2 className="animate-spin" /> : "Create account"}
+                      {isLoading ? (
+                        <div className="flex justify-center items-center">
+                          {/* Centered RingLoader */}
+                          <RingLoader
+                            color="#ffffff" 
+                            size={22} 
+                            loading={isLoading}
+                          />
+                        </div>
+                      ) : (
+                        "Create account"
+                      )}
                     </button>
                   </div>
                 

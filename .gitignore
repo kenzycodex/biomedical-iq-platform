@@ -36,6 +36,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-;# Ignore generated sitemap and robots.txt
+# Ignore generated sitemap and robots.txt
 /public/sitemap*.xml
 /public/robots.txt
+
+# Ignore documentation scripts
+/document
+
