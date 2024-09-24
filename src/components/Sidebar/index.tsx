@@ -316,7 +316,8 @@ const menuGroups = [
         children: [
           { label: "Sign In", route: "/auth/signin" },
           { label: "Sign Up", route: "/auth/signup" },
-          { label: "Reset Password", route: "/auth/forgotpass" },
+          { label: "Password Reset", route: "/auth/forgotpass" },
+          { label: "Verify User", route: "/auth/verify" },
         ],
       },
     ],
