@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion'; // Import Framer Motion
+import { motion } from 'framer-motion'; 
 
 interface AlertProps {
   variant?: 'default' | 'destructive' | 'success';

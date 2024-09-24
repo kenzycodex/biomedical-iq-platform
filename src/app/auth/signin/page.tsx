@@ -37,8 +37,7 @@ const SignIn: React.FC = () => {
               </Link>
 
               <p className="2xl:px-20">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit
-                suspendisse.
+                Welcome to Biomedical IQ – your trusted platform for healthcare equipment maintenace and management solutions.
               </p>
 
               <span className="mt-15 inline-block">

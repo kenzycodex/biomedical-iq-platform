@@ -77,7 +77,7 @@ const SignUp: React.FC = () => {
         "Registration successful. Please check your email for verification."
       );
       // Redirecting to sign-in page upon success
-      setTimeout(() => router.push("/auth/signin"), 3000);
+      setTimeout(() => router.push("/auth/verify"), 3000);
     } catch (err: any) {
       console.error("Registration Error:", err);
       if (axios.isAxiosError(err)) {
