@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion'; 
 
 interface AlertProps {
-  variant?: 'default' | 'destructive' | 'success';
+  variant?: 'default' | 'error' | 'success';
   children: React.ReactNode;
   autoDismiss?: boolean;
   dismissTimeout?: number; // Time in milliseconds before auto-dismiss
@@ -17,11 +17,11 @@ export const Alert: React.FC<AlertProps> = ({
   dismissTimeout = 5000,  // Default dismiss after 5 seconds
   onDismiss,
 }) => {
-  const baseStyles = 'p-4 mb-4 rounded-lg transition-opacity duration-300 ease-in-out';
+  const baseStyles = 'p-2 mb-2 rounded-lg transition-opacity duration-300 ease-in-out';
   const variantStyles = {
-    default: 'bg-blue-100 text-blue-700 border-blue-500 border-l-4',
-    destructive: 'bg-red-100 text-red-700 border-red-500 border-l-4',
-    success: 'bg-green-100 text-green-700 border-green-500 border-l-4',
+    default: 'bg-blue-100 text-blue-700 border-blue-500 border-2',
+    error: 'bg-red-100 text-red-700 border-red-500 border-2',
+    success: 'bg-green-100 text-green-700 border-green-500 border-2',
   };
 
   const [visible, setVisible] = useState(true);
@@ -50,8 +50,8 @@ export const Alert: React.FC<AlertProps> = ({
     >
       <div className="flex items-center">
         <div className="mr-3">
-          {variant === 'destructive' && (
-            <svg className="w-6 h-6 text-red-700" fill="currentColor" viewBox="0 0 20 20">
+          {variant === 'error' && (
+            <svg className="w-4 h-4 text-red-700" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fillRule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a1 1 0 00-1.414 0L7 10l-.707-.707a1 1 0 00-1.414 1.414L7 12l-2.707 2.707a1 1 0 101.414 1.414L8 13.414l2.707 2.707a1 1 0 001.414-1.414L9 12l2.707-2.707a1 1 0 000-1.414z"
@@ -60,7 +60,7 @@ export const Alert: React.FC<AlertProps> = ({
             </svg>
           )}
           {variant === 'success' && (
-            <svg className="w-6 h-6 text-green-700" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-4 h-4 text-green-700" fill="currentColor" viewBox="0 0 20 20">
               <path
                 fillRule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zm-2-8l-2-2a1 1 0 111.414-1.414L8 8.586 12.293 4.293a1 1 0 011.414 1.414L8.414 10l-2-2z"

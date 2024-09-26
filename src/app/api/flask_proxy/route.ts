@@ -4,206 +4,138 @@ import axios from 'axios';
 
 const FLASK_API_URL = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
 
-// Logger utility
-function logError(message: string, error?: any, meta: any = {}) {
-    console.error(`[ERROR] ${message}`, { error: error?.message || error, ...meta });
+// Helper to refresh the access token
+async function refreshAccessToken(refreshToken: string) {
+  try {
+    const response = await axios.post(`${FLASK_API_URL}/auth/refresh`, {}, {
+      headers: { Authorization: `Bearer ${refreshToken}` },
+    });
+    return response.data.access_token;
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    return null;
+  }
 }
 
-function logInfo(message: string, meta: any = {}) {
-    console.log(`[INFO] ${message}`, meta);
-}
+// Helper to retrieve tokens from the request
+const getTokens = (request: NextRequest) => {
+  const accessToken = request.headers.get('Authorization')?.split(" ")[1];
+  const refreshToken = request.cookies.get('refreshToken')?.value;
+  return { accessToken, refreshToken };
+};
 
-function logWarning(message: string, meta: any = {}) {
-    console.warn(`[WARNING] ${message}`, meta);
-}
+// Manage cookies and headers in response
+const handleResponse = (nextResponse: NextResponse, responseData: any, request: NextRequest) => {
+  const isLocalhost = request.headers.get('host')?.includes('localhost');
+  const isSecureCookie = !isLocalhost; // Use secure cookies only when not on localhost
 
-// Handle Axios errors
-function handleAxiosError(error: any) {
-    if (axios.isAxiosError(error)) {
-        if (error.response) {
-            logError("Received error response from Flask API", error.response.data);
-            return NextResponse.json(error.response.data, { status: error.response.status });
-        } else if (error.request) {
-            logError("No response received from Flask API", error.request);
-            return NextResponse.json({ error: "No response received from the server" }, { status: 500 });
-        } else {
-            logError("Error in request configuration", error.message);
-            return NextResponse.json({ error: error.message }, { status: 500 });
+  if (responseData.refresh_token) {
+    nextResponse.cookies.set('refreshToken', responseData.refresh_token, {
+      httpOnly: true,
+      secure: isSecureCookie,  // Secure in production, not secure on localhost
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60, // 1 week
+      path: '/'
+    });
+  }
+  if (responseData.user) {
+    nextResponse.headers.set('X-User-Data', JSON.stringify(responseData.user));
+  }
+  if (responseData.access_token) {
+    nextResponse.headers.set('X-Access-Token', responseData.access_token);
+  }
+};
+
+// Handle Axios errors consistently
+const handleAxiosError = (error: any) => {
+  if (axios.isAxiosError(error)) {
+    const errorMessage = error.response ? error.response.data : { error: "No response from server" };
+    return NextResponse.json(errorMessage, { status: error.response?.status || 500 });
+  }
+  return NextResponse.json({ error: "Unexpected error occurred" }, { status: 500 });
+};
+
+// Helper to handle authenticated API requests with interceptor logic
+async function makeAuthenticatedRequest(request: NextRequest, path: string, method: string, body?: any) {
+  const { accessToken, refreshToken } = getTokens(request);
+  const fullUrl = `${FLASK_API_URL}${path}`;
+  const config = {
+    method,
+    url: fullUrl,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+    },
+    ...(body && { data: body }),
+  };
+
+  try {
+    const response = await axios(config);
+    const nextResponse = NextResponse.json(response.data, { status: response.status });
+    handleResponse(nextResponse, response.data, request);
+    return nextResponse;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401 && refreshToken) {
+      const newAccessToken = await refreshAccessToken(refreshToken);
+      if (newAccessToken) {
+        config.headers.Authorization = `Bearer ${newAccessToken}`;
+        try {
+          const retryResponse = await axios(config);
+          const nextResponse = NextResponse.json(retryResponse.data, { status: retryResponse.status });
+          handleResponse(nextResponse, retryResponse.data, request);
+          return nextResponse;
+        } catch (retryError) {
+          return handleAxiosError(retryError);
         }
-    } else {
-        return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+      } else {
+        // Refresh token is invalid, return user-friendly message
+        return NextResponse.json({ error: "Session expired, please log in again" }, { status: 401 });
+      }
     }
+    return handleAxiosError(error);
+  }
 }
 
-// Function to refresh access token
-async function refreshAccessToken(refreshToken: string): Promise<string | null> {
-    try {
-        const response = await axios.post(`${FLASK_API_URL}/auth/refresh`, {}, {
-            headers: { Authorization: `Bearer ${refreshToken}` },
-        });
-        logInfo('Access token refreshed successfully.');
-        return response.data.access_token;
-    } catch (error) {
-        handleAxiosError(error);
-        return null;
-    }
+// POST handler for authentication routes
+export async function POST(request: NextRequest) {
+  const url = new URL(request.url);
+  const path = url.pathname.replace("/api/flask_proxy", "");
+  const body = await request.json();
+
+  const validPaths = [
+    '/auth/register', '/auth/login', '/auth/refresh', 
+    '/auth/logout', '/auth/update_profile', 
+    '/auth/reset-password', '/auth/reset-password-confirm'
+  ];
+
+  if (validPaths.includes(path)) {
+    return makeAuthenticatedRequest(request, path, 'POST', body);
+  }
+  return NextResponse.json({ error: "Unsupported route" }, { status: 404 });
 }
 
-// Middleware for attaching access tokens to headers for requests
-async function attachAccessToken(request: NextRequest, refreshToken: string): Promise<string | null> {
-    let accessToken = request.headers.get('Authorization')?.split(" ")[1];
+// GET handler for authentication routes
+export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const path = url.pathname.replace("/api/flask_proxy", "");
 
-    if (!accessToken && refreshToken) {
-        accessToken = await refreshAccessToken(refreshToken);
-        if (!accessToken) {
-            logWarning('Failed to attach access token. User may need to re-authenticate.');
-            return null;
-        }
-    }
-    return accessToken;
+  const validPaths = ['/auth/profile', '/auth/verify-email'];
+
+  if (validPaths.includes(path)) {
+    return makeAuthenticatedRequest(request, path, 'GET');
+  }
+  return NextResponse.json({ error: "Unsupported route" }, { status: 404 });
 }
 
-// Handle POST requests (Registration, Login, etc.)
-export async function POST(request: NextRequest): Promise<NextResponse> {
-    try {
-        const body = await request.json();
-        const flaskPath = body.flaskPath || "/auth/register";
-        const fullUrl = `${FLASK_API_URL}${flaskPath}`;
-        const refreshToken = request.cookies.get('refreshToken')?.value || '';
+// PUT handler for updating profile
+export async function PUT(request: NextRequest) {
+  const url = new URL(request.url);
+  const path = url.pathname.replace("/api/flask_proxy", "");
+  const body = await request.json();
 
-        const accessToken = await attachAccessToken(request, refreshToken);
-        if (!accessToken) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+  if (path === '/auth/update_profile') {
+    return makeAuthenticatedRequest(request, path, 'PUT', body);
+  }
 
-        const response = await axios.post(fullUrl, body, {
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${accessToken}`,
-            },
-        });
-
-        logInfo(`POST request successful for ${flaskPath}`, { user: response.data?.user?.username });
-
-        // Handle refresh token for session persistence
-        const nextResponse = NextResponse.json(response.data, { status: response.status });
-        if (response.data.refresh_token) {
-            nextResponse.cookies.set('refreshToken', response.data.refresh_token, {
-                httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60, path: '/',
-            });
-        }
-        return nextResponse;
-
-    } catch (error) {
-        return handleAxiosError(error);
-    }
+  return NextResponse.json({ error: "Unsupported route" }, { status: 404 });
 }
-
-// Handle user logout with secure token invalidation
-export async function logout(request: NextRequest): Promise<NextResponse> {
-    try {
-        const refreshToken = request.cookies.get('refreshToken')?.value || '';
-
-        const accessToken = await attachAccessToken(request, refreshToken);
-        if (!accessToken) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const response = await axios.post(`${FLASK_API_URL}/auth/logout`, {}, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-        });
-
-        logInfo('User logged out successfully.');
-
-        // Clear cookies on logout
-        const nextResponse = NextResponse.json({ message: 'Successfully logged out' }, { status: response.status });
-        nextResponse.cookies.delete('refreshToken');
-        return nextResponse;
-
-    } catch (error) {
-        return handleAxiosError(error);
-    }
-}
-
-// Handle user login request
-export async function login(request: NextRequest): Promise<NextResponse> {
-    try {
-        const { login_info, password } = await request.json();
-        const refreshToken = request.cookies.get('refreshToken')?.value || '';
-
-        if (!login_info || !password) {
-            logWarning('Login information and password are required.');
-            return NextResponse.json({ error: 'Login information and password are required' }, { status: 400 });
-        }
-
-        const accessToken = await attachAccessToken(request, refreshToken);
-        const fullUrl = `${FLASK_API_URL}/auth/login`;
-
-        const response = await axios.post(fullUrl, { login_info, password }, {
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${accessToken || ''}`,
-            },
-        });
-
-        logInfo('Login request successful.', { user: response.data?.user?.username });
-
-        // Handle refresh token for session persistence
-        const nextResponse = NextResponse.json(response.data, { status: response.status });
-        if (response.data.refresh_token) {
-            nextResponse.cookies.set('refreshToken', response.data.refresh_token, {
-                httpOnly: true, secure: true, sameSite: 'strict', maxAge: 7 * 24 * 60 * 60, path: '/',
-            });
-        }
-        return nextResponse;
-
-    } catch (error) {
-        return handleAxiosError(error);
-    }
-}
-
-// Fetch user profile for dashboard view
-export async function getUserProfile(request: NextRequest): Promise<NextResponse> {
-    try {
-        const refreshToken = request.cookies.get('refreshToken')?.value || '';
-
-        const accessToken = await attachAccessToken(request, refreshToken);
-        if (!accessToken) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        const response = await axios.get(`${FLASK_API_URL}/auth/profile`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-        });
-
-        logInfo('User profile fetched successfully.', { user: response.data.username });
-
-        return NextResponse.json(response.data, { status: 200 });
-    } catch (error) {
-        return handleAxiosError(error);
-    }
-}
-
-// Verify 2FA code with rate limiting
-export async function verify2FA(request: NextRequest): Promise<NextResponse> {
-    try {
-        const { email, verification_code } = await request.json();
-
-        if (!email || !verification_code) {
-            logWarning('Email and verification code are required.');
-            return NextResponse.json({ error: 'Email and verification code are required' }, { status: 400 });
-        }
-
-        const response = await axios.post(`${FLASK_API_URL}/auth/verify`, { email, verification_code }, {
-            headers: { 'Content-Type': 'application/json' },
-        });
-
-        logInfo('2FA verification successful.', { user: email });
-
-        return NextResponse.json({ message: 'Account verified successfully. You can now log in.' }, { status: 200 });
-
-    } catch (error) {
-        return handleAxiosError(error);
-    }
-}
-

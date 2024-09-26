@@ -9,9 +9,10 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import DefaultLayout from "@/components/Layouts/DefaultLayout";
-import { Alert } from '@/components/UI/alerts';
 import { RingLoader } from 'react-spinners';
 import axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Validation schema using Yup
 const schema = yup.object().shape({
@@ -48,58 +49,82 @@ interface FormData {
 const SignUp: React.FC = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<FormData>({
     resolver: yupResolver(schema),
   });
+  
+  const showToast = (message: string, type: 'success' | 'error') => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+    } else if (type === 'error') {
+      toast.error(message, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+    }
+  };
 
   // Handle normal signup
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     setIsLoading(true);
-    setError(null);
-    setSuccess(null);
+    
+    // Clears the form after 5 seconds
+    setTimeout(() => reset(), 5000);
 
     try {
-      // POST request to the proxy route with registration data
-      const response = await axios.post("/api/flask_proxy", {
-        method: "POST",
-        url: "/auth/register",
-        body: data,
+      const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
+
+      const response = await axios.post(`${apiUrl}/auth/register`, data, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       if (response.status === 201) {
-        setSuccess(
-          "Registration successful. Please check your email for verification."
-        );
-        // Redirecting to verification page upon success
+        // Clear any existing email in localStorage
+        localStorage.removeItem('user_email');
+        
+        // Store email in localStorage for use in verification
+        localStorage.setItem('user_email', data.email);
+        
+        // Clears the form fallback 
+        reset();
+        
+        showToast("Registration successful. Please check your email for verification.", 'success');
         setTimeout(() => router.push("/auth/verify"), 3000);
       } else {
-        setError(
-          response.data.error ||
-            "An unexpected error occurred. Please try again."
-        );
+        showToast(response.data.error || "An unexpected error occurred. Please try again.", 'error');
       }
     } catch (err: any) {
-      console.error("Registration Error:", err);
       if (axios.isAxiosError(err)) {
         if (err.response) {
-          setError(
-            err.response.data.error ||
-              "An unexpected error occurred. Please try again."
-          );
+          showToast(err.response.data.error || "An unexpected error occurred. Please try again.", 'error');
         } else if (err.request) {
-          setError("No response received from the server. Please try again later.");
+          showToast("No response received from the server. Please try again later.", 'error');
         } else {
-          setError("An error occurred while processing your request. Please try again.");
+          showToast("An error occurred while processing your request. Please try again.", 'error');
         }
       } else {
-        setError("An unexpected error occurred. Please try again.");
+        showToast("An unexpected error occurred. Please try again.", 'error');
       }
     } finally {
       setIsLoading(false);
@@ -265,18 +290,6 @@ const SignUp: React.FC = () => {
               <h2 className="mb-9 text-2xl font-bold text-black dark:text-white sm:text-title-x11">
                 Sign Up to Biomedical IQ
               </h2>
-              
-               {/* Display error and success messages */}
-              {error && (
-                <Alert variant="destructive" autoDismiss={true} dismissTimeout={20000}>
-                  <p>{error}</p>
-                </Alert>
-              )}
-              {success && (
-                <Alert variant="success" autoDismiss={true} dismissTimeout={2000}>
-                  <p>{success}</p>
-                </Alert>
-              )}
 
               <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="mb-4">
@@ -553,9 +566,9 @@ const SignUp: React.FC = () => {
                     </button>
                   </div>
                 
-                {/* Error and Success Messages */}
-                {error && <p style={{ color: 'red' }}>{error}</p>}
-                {success && <p style={{ color: 'green' }}>{success}</p>}
+                {/* Display error and success messages */}
+                {/* Toast Container */}
+                <ToastContainer />
           
                 <div className="mt-6 text-center">
                     <p>
