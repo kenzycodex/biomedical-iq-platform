@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    domains: ['res.cloudinary.com'],
+  },
   webpack: (config, { dev, isServer }) => {
     config.watchOptions = {
       ignored: /node_modules/,

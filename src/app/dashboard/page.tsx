@@ -1,6 +1,7 @@
 import Dashboard from "@/components/Dashboard/Dashboard";
 import { Metadata } from "next";
 import React from "react";
+import DefaultLayout from "@/components/Layouts/DefaultLayout";
 
 export const metadata: Metadata = {
   title:
@@ -10,9 +11,9 @@ export const metadata: Metadata = {
 
 const DashboardPage: React.FC = () => {
   return (
-    <>
+    <DefaultLayout>
       <Dashboard />
-    </>
+    </DefaultLayout>
   );
 };
 

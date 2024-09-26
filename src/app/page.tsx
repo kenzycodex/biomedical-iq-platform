@@ -1,7 +1,6 @@
 // page.tsx
 import DashboardPage from "./dashboard/page";
 import { Metadata } from "next";
-import DefaultLayout from "@/components/Layouts/DefaultLayout";
 
 export const metadata: Metadata = {
   title: "Biomedical IQ - Medical Equipment Maintenance Platform",
@@ -11,8 +10,8 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <DefaultLayout>
+    <>
       <DashboardPage />
-    </DefaultLayout>
+    </>
   );
 }

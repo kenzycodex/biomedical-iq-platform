@@ -1,16 +1,140 @@
-import React from "react";
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import { Metadata } from "next";
 import DefaultLayout from "@/components/Layouts/DefaultLayout";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { RingLoader } from "react-spinners";
 
-export const metadata: Metadata = {
-  title: "Biomedical IQ - Sign In",
-  description: "This is SignIn Page Biomedical IQ Platform",
-};
+// Validation schema using Yup
+const schema = yup.object().shape({
+  login_info: yup
+    .string()
+    .required("Email or phone number is required"),
+  password: yup
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .required("Password is required"),
+});
+
+interface FormData {
+  login_info: string;
+  password: string;
+}
 
 const SignIn: React.FC = () => {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: yupResolver(schema),
+  });
+
+  // Display toast notifications
+  const showToast = (message: string, type: 'success' | 'error') => {
+    if (type === 'success') {
+      toast.success(message, {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+    } else if (type === 'error') {
+      toast.error(message, {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+    }
+  };
+
+  // Function to handle token storage and session persistence
+  const handleSession = (accessToken: string, refreshToken: string) => {
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+  };
+
+  // Automatic token refresh on page reload or revisit
+  useEffect(() => {
+    const refreshToken = localStorage.getItem("refreshToken");
+    const refreshAccessToken = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
+        const response = await axios.post(`${apiUrl}/auth/refresh`, {}, {
+          headers: {
+            Authorization: `Bearer ${refreshToken}`,
+          },
+        });
+        if (response.status === 200) {
+          handleSession(response.data.access_token, refreshToken!);
+          router.push("/dashboard"); // Redirect user to dashboard
+        }
+      } catch (err) {
+        // If token refresh fails, clear localStorage and stay on sign-in page
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+      }
+    };
+    // Only attempt to refresh token if we're not already on the sign-in page
+    if (refreshToken && router.pathname !== "/auth/signin") {
+      refreshAccessToken();
+    }
+  }, [router]);
+
+  // Handle form submission for login
+  const onSubmit: SubmitHandler<FormData> = async (data) => {
+    setIsLoading(true);
+    
+    // Clears the form after 3 seconds
+    setTimeout(() => reset(), 3000);
+    
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
+      const response = await axios.post(`${apiUrl}/auth/login`, data, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.status === 200) {
+        const { access_token, refresh_token, user } = response.data;
+        handleSession(access_token, refresh_token);
+        showToast("Login successful!", "success");
+        setTimeout(() => router.push("/dashboard"), 3000); // Redirect after successful login
+      }
+    } catch (err: any) {
+      if (axios.isAxiosError(err)) {
+        if (err.response) {
+          showToast(err.response.data.error || "Invalid credentials. Please try again.", "error");
+        } else {
+          showToast("No response from server. Please try again later.", "error");
+        }
+      } else {
+        showToast("An error occurred. Please try again.", "error");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <DefaultLayout>
       <Breadcrumb pageName="Sign In" />
@@ -172,15 +296,16 @@ const SignIn: React.FC = () => {
                 Sign In to Biomedical IQ
               </h2>
 
-              <form>
+              <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="mb-4">
                   <label className="mb-2.5 block font-medium text-black dark:text-white">
-                    Email
+                    Email or Phone
                   </label>
                   <div className="relative">
                     <input
                       type="email"
-                      placeholder="Enter your email"
+                      {...register("login_info")}
+                      placeholder="Enter your email or phone number"
                       className="w-full rounded-lg border border-stroke bg-transparent py-4 pl-6 pr-10 text-black outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
                     />
 
@@ -202,6 +327,9 @@ const SignIn: React.FC = () => {
                       </svg>
                     </span>
                   </div>
+                  {errors.login_info && (
+                    <p className="text-red-500 text-sm mt-1">{errors.login_info.message}</p>
+                  )}
                 </div>
 
                 <div className="mb-6">
@@ -211,6 +339,7 @@ const SignIn: React.FC = () => {
                   <div className="relative">
                     <input
                       type="password"
+                      {...register("password")}
                       placeholder="Enter your password"
                       className="w-full rounded-lg border border-stroke bg-transparent py-4 pl-6 pr-10 text-black outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
                     />
@@ -237,15 +366,34 @@ const SignIn: React.FC = () => {
                       </svg>
                     </span>
                   </div>
+                  {errors.password && (
+                    <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
+                  )}
                 </div>
 
                 <div className="mb-5">
-                  <input
+                  <button
                     type="submit"
-                    value="Sign In"
-                    className="w-full cursor-pointer rounded-lg border border-primary bg-primary p-4 text-white transition hover:bg-opacity-90"
-                  />
+                    disabled={isLoading}
+                    className={`w-full cursor-pointer rounded-lg border border-primary bg-primary p-4 text-white transition hover:bg-opacity-90 disabled:opacity-50 ${isLoading ? "cursor-not-allowed" : ""}`}
+                  >
+                    {isLoading ? (
+                      <div className="flex justify-center items-center">
+                        <RingLoader
+                          color="#ffffff" 
+                          size={22} 
+                          loading={isLoading}
+                        />
+                      </div>
+                    ) : (
+                      "Sign In"
+                    )}
+                  </button>
                 </div>
+                
+                {/* Display error and success messages */}
+                {/* Toast Container */}
+                <ToastContainer />
 
                 <div className="mt-6 text-center">
                   <p>
