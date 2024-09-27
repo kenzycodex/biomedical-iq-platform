@@ -120,7 +120,7 @@ const SignIn: React.FC = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          timeout: 15000,  // Set the timeout to 15 seconds
+          timeout: 30000,  // Set the timeout to 15 seconds
         });
     
         if (response.status === 200) {
