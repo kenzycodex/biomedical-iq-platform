@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { ToastContainer, toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -11,116 +10,226 @@ import { Edit2, X } from 'lucide-react';
 import axios from 'axios';
 import DefaultLayout from "@/components/Layouts/DefaultLayout";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { RingLoader } from "react-spinners";
+import { ToastContainer, toast, ToastPosition } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+interface FormData {
+  full_name: string;
+  email: string;
+  organization: string;
+  phone_number: string;
+  address: string;
+  about_us?: string;
+  profile_picture?: File | string | null;
+}
 
 const schema = yup.object().shape({
-  fullName: yup.string().required('Full name is required'),
-  phoneNumber: yup.string().required('Phone number is required'),
+  full_name: yup.string().required('Full name is required'),
+  phone_number: yup.string().required('Phone number is required'),
   email: yup.string().email('Invalid email').required('Email is required'),
   organization: yup.string().required('Organization is required'),
   address: yup.string().required('Address is required'),
-  aboutUs: yup.string(),
+  about_us: yup.string(),
 });
 
-const Settings = () => {
-  const [user, setUser] = useState(null);
+const Settings: React.FC = () => {
+  const [user, setUser] = useState<FormData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [profilePicture, setProfilePicture] = useState(null);
+  const [profile_picture, setProfilePicture] = useState<string | File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: yupResolver(schema),
   });
   
   // Display toast notifications
-  const showToast = (message: string, type: 'success' | 'error') => {
-    if (type === 'success') {
-      toast.success(message, {
+  const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
+      const toastConfig = {
+        position: "top-right" as ToastPosition,
         autoClose: 5000,
         hideProgressBar: false,
         closeOnClick: true,
         pauseOnHover: true,
         draggable: true,
         progress: undefined,
-      });
-    } else if (type === 'error') {
-      toast.error(message, {
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-    }
-  };
-
-  useEffect(() => {
-    fetchUserProfile();
-  }, []);
-
-  const fetchUserProfile = async () => {
-    try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/auth/profile`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
-      });
-      setUser(response.data);
-      setProfilePicture(response.data.profilePicture);
-      Object.keys(response.data).forEach(key => setValue(key, response.data[key]));
-    } catch (error) {
-      handleApiError(error, 'Failed to fetch user profile');
-    }
-  };
-
-  const onSubmit = async (data) => {
-    setIsLoading(true);
+      };
     
-    try {
-      const response = await axios.put(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/auth/update_profile`, data, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      });
-      setUser(response.data.user);
-      setIsEditing(false);
-      toast.success('Profile updated successfully');
-    } catch (error) {
-      handleApiError(error, 'Failed to update profile');
-    }
+      if (type === 'warning') {
+        toast(message, { ...toastConfig, style: { backgroundColor: '#3498db', color: '#fff' } }); // Blue for warning
+      } else {
+        toast[type](message, toastConfig); // Default for success and error
+      }
   };
 
-  const handleFileUpload = async (file) => {
-    if (!file) return;
-    setIsUploading(true);
-    setUploadProgress(0);
-    const formData = new FormData();
-    formData.append('profilePicture', file);
-    try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/auth/upload_profile_picture`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setUploadProgress(percentCompleted);
-        },
-      });
-      setProfilePicture(response.data.profilePicture);
-      toast.success('Profile picture uploaded successfully');
-    } catch (error) {
-      handleApiError(error, 'Failed to upload profile picture');
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+  // Memoize the handleApiError function
+  const handleApiError = useCallback((error: unknown, defaultMessage: string) => {
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        if (error.response.status === 401) {
+          showToast('Session expired. Please log in again.', 'error');
+          router.push('/auth/signin');
+        } else {
+          showToast(error.response.data.error || defaultMessage, 'error');
+        }
+      } else if (error.request) {
+        showToast('No response from server. Please try again later.', 'error');
+      } else {
+        showToast('An unexpected error occurred. Please try again.', 'error');
+      }
+    } else {
+      showToast(defaultMessage, 'error');
     }
+    console.error('API Error:', error);
+  }, [router]);
+
+  const fetchUserProfile = useCallback(async () => {
+      try {
+        const response = await axios.get<FormData>(
+          `${process.env.NEXT_PUBLIC_FLASK_API_URL}/auth/profile`,
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
+          }
+        );
+        setUser(response.data);
+        setProfilePicture(response.data.profile_picture || null);
+    
+        // Update form fields with fetched data
+        Object.keys(response.data).forEach((key) => {
+          setValue(key as keyof FormData, response.data[key as keyof FormData]);
+        });
+    
+        // Optionally save the fetched user profile to local storage
+        localStorage.setItem('userProfile', JSON.stringify(response.data));
+    
+      } catch (error) {
+        handleApiError(error, 'Failed to fetch user profile');
+      }
+    }, [handleApiError, setValue]);
+    
+    useEffect(() => {
+      // First, try to load user profile data from local storage
+      const storedUserProfile = localStorage.getItem('userProfile');
+      if (storedUserProfile) {
+        const parsedProfile = JSON.parse(storedUserProfile);
+    
+        setUser(parsedProfile);
+        setProfilePicture(parsedProfile.profile_picture || null);
+    
+        // Populate form fields with stored data
+        Object.keys(parsedProfile).forEach((key) => {
+          setValue(key as keyof FormData, parsedProfile[key as keyof FormData]);
+        });
+      }
+    
+      // Then, make an API call to ensure fresh data is fetched
+      fetchUserProfile();
+
+  }, [fetchUserProfile, setValue]);  
+
+  const currentUser = JSON.parse(localStorage.getItem('userProfile') || '{}');
+
+    const onSubmit: SubmitHandler<FormData> = async (data) => {
+      setIsLoading(true);
+    
+      // Create FormData to handle file upload and profile data
+      const formData = new FormData();
+    
+      // Compare each field with the current user data before appending to FormData
+      if (data.full_name !== currentUser.full_name) {
+        formData.append('full_name', data.full_name);
+      }
+    
+      if (data.phone_number !== currentUser.phone_number) {
+        formData.append('phone_number', data.phone_number);
+      }
+    
+      if (data.organization !== currentUser.organization) {
+        formData.append('organization', data.organization);
+      }
+    
+      if (data.address !== currentUser.address) {
+        formData.append('address', data.address || ''); // Optional
+      }
+    
+      if (data.about_us !== currentUser.about_us) {
+        formData.append('about_us', data.about_us || ''); // Optional
+      }
+    
+      // Profile picture comparison
+      if (data.profile_picture instanceof FileList && data.profile_picture.length > 0) {
+        formData.append('profile_picture', data.profile_picture[0]); // New file selected
+      } else if (typeof data.profile_picture === 'string' && data.profile_picture !== currentUser.profile_picture) {
+        formData.append('profile_picture', data.profile_picture); // URL string of the existing image
+      }
+    
+      // If no changes were made, return an error message
+      if (formData.entries().next().done) {
+        showToast('No changes were made to the profile', 'warning');
+        setIsLoading(false);
+        return;
+      }
+    
+      try {
+        const response = await axios.put(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/auth/update_profile`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',  // Important for file uploads
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        });
+    
+        const updatedUser = response.data.user;
+        localStorage.setItem('userProfile', JSON.stringify(updatedUser));  // Update the local user profile
+        setUser(updatedUser);  // Update user state
+        setIsEditing(false);  // Exit editing mode
+        showToast('Profile updated successfully', 'success');
+      } catch (error) {
+        handleApiError(error, 'Failed to update profile');
+      } finally {
+        setIsLoading(false);
+      }
+  };
+
+  const handleFileUpload = async (file: File | null) => {
+      if (!file) return;
+      
+      setIsUploading(true);
+      setUploadProgress(0);
+      const formData = new FormData();
+      formData.append('profile_picture', file);
+      
+      try {
+        const response = await axios.post(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/auth/upload_profile_picture`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setUploadProgress(percentCompleted);
+            }
+          },
+        });
+    
+        // Update local storage with the new profile picture URL
+        const updatedProfilePicture = response.data.profile_picture;
+        const currentUser = JSON.parse(localStorage.getItem('userProfile') || '{}');
+        currentUser.profile_picture = updatedProfilePicture; // Update the profile picture URL
+        localStorage.setItem('userProfile', JSON.stringify(currentUser)); // Save back to local storage
+    
+        // Update state to reflect the new profile picture
+        setProfilePicture(updatedProfilePicture); 
+        showToast('Profile picture uploaded successfully', 'success');
+      } catch (error) {
+        handleApiError(error, 'Failed to upload profile picture');
+      } finally {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }
   };
 
   const handleDeleteProfilePicture = async () => {
@@ -129,30 +238,10 @@ const Settings = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
       });
       setProfilePicture(null);
-      toast.success('Profile picture deleted');
+      showToast('Profile picture deleted', 'success');
     } catch (error) {
       handleApiError(error, 'Failed to delete profile picture');
     }
-  };
-
-  const handleApiError = (error, defaultMessage) => {
-    if (axios.isAxiosError(error)) {
-      if (error.response) {
-        if (error.response.status === 401) {
-          toast.error('Session expired. Please log in again.');
-          router.push('/auth/signin');
-        } else {
-          toast.error(error.response.data.error || defaultMessage);
-        }
-      } else if (error.request) {
-        toast.error('No response from server. Please try again later.');
-      } else {
-        toast.error('An unexpected error occurred. Please try again.');
-      }
-    } else {
-      toast.error(defaultMessage);
-    }
-    console.error('API Error:', error);
   };
 
   const refreshToken = async () => {
@@ -169,31 +258,24 @@ const Settings = () => {
   };
   
   axios.interceptors.response.use(
-      (response) => {
-        // Successful response
-        return response;
-      },
-      async (error) => {
-        const originalRequest = error.config;
+    (response) => response,
+    async (error) => {
+      const originalRequest = error.config;
+      if (error.response.status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
         try {
-          if (error.response.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
-            const newToken = await refreshToken();
-            axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-            return axios(originalRequest);
-          }
-        } catch (err) {
-          // Handle other errors or show a toast message
-          showToast("An error occurred. Please try again.", "error");
-          return Promise.reject(err);
-        } finally {
-          // Ensure isLoading is set to false no matter what
-          setIsLoading(false);
+          const newToken = await refreshToken();
+          axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+          return axios(originalRequest);
+        } catch (refreshError) {
+          showToast("Session expired. Please log in again.", "error");
+          router.push('/auth/signin');
+          return Promise.reject(refreshError);
         }
-    
-        return Promise.reject(error);
       }
-    );
+      return Promise.reject(error);
+    }
+  );
 
   return (
     <DefaultLayout>
@@ -214,7 +296,6 @@ const Settings = () => {
                     <div className="w-full sm:w-1/2">
                       <label
                         className="mb-3 block text-sm font-medium text-black dark:text-white"
-                        htmlFor="fullName"
                       >
                         Full Name
                       </label>
@@ -247,32 +328,29 @@ const Settings = () => {
                         <input
                           className="w-full rounded border border-stroke bg-gray py-3 pl-11.5 pr-4.5 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white dark:focus:border-primary"
                           type="text"
-                          id="fullName"
-                          {...register('fullName')}
+                          {...register('full_name')}
                           placeholder="User Name"
                         />
                       </div>
-                      {errors.fullName && (
-                        <p className="text-red-500 text-sm mt-1">{errors.fullName.message}</p>
+                      {errors.full_name && (
+                        <p className="text-red-500 text-sm mt-1">{errors.full_name.message}</p>
                       )}
                     </div>
 
                     <div className="w-full sm:w-1/2">
                       <label
                         className="mb-3 block text-sm font-medium text-black dark:text-white"
-                        htmlFor="phoneNumber"
                       >
                         Phone Number
                       </label>
                       <input
                         className="w-full rounded border border-stroke bg-gray px-4.5 py-3 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white dark:focus:border-primary"
                         type="text"
-                        id="phoneNumber"
-                        {...register('phoneNumber')}
+                        {...register('phone_number')}
                         placeholder="+123 456 7890"
                       />
-                      {errors.phoneNumber && (
-                        <p className="text-red-500 text-sm mt-1">{errors.phoneNumber.message}</p>
+                      {errors.phone_number && (
+                        <p className="text-red-500 text-sm mt-1">{errors.phone_number.message}</p>
                       )}
                     </div>
                   </div>
@@ -280,7 +358,6 @@ const Settings = () => {
                   <div className="mb-5.5">
                     <label
                       className="mb-3 block text-sm font-medium text-black dark:text-white"
-                      htmlFor="emailAddress"
                     >
                       Email Address
                     </label>
@@ -313,7 +390,6 @@ const Settings = () => {
                       <input
                         className="w-full rounded border border-stroke bg-gray py-3 pl-11.5 pr-4.5 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white dark:focus:border-primary"
                         type="email"
-                        id="emailAddress"
                         {...register('email')}                                                placeholder="userEmail@gmail.com"
                       />
                       {errors.email && (
@@ -325,14 +401,12 @@ const Settings = () => {
                   <div className="mb-5.5">
                     <label
                       className="mb-3 block text-sm font-medium text-black dark:text-white"
-                      htmlFor="Organization"
                     >
                       Organization
                     </label>
                     <input
                       className="w-full rounded border border-stroke bg-gray px-4.5 py-3 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white dark:focus:border-primary"
                       type="text"
-                      id="Organization"
                       {...register('organization')}
                       placeholder="Your organization"
                     />
@@ -344,14 +418,12 @@ const Settings = () => {
                   <div className="mb-5.5">
                     <label
                       className="mb-3 block text-sm font-medium text-black dark:text-white"
-                      htmlFor="Address"
                     >
                       Address
                     </label>
                     <input
                       className="w-full rounded border border-stroke bg-gray px-4.5 py-3 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white dark:focus:border-primary"
                       type="text"
-                      id="Address"
                       {...register('address')}
                       placeholder="Your address"
                     />
@@ -363,7 +435,6 @@ const Settings = () => {
                   <div className="mb-5.5">
                     <label
                       className="mb-3 block text-sm font-medium text-black dark:text-white"
-                      htmlFor="aboutUs"
                     >
                       About Us
                     </label>
@@ -401,9 +472,8 @@ const Settings = () => {
 
                       <textarea
                         className="w-full rounded border border-stroke bg-gray py-3 pl-11.5 pr-4.5 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white dark:focus:border-primary"
-                        id="aboutUs"
                         rows={10}
-                        {...register('aboutUs')}
+                        {...register('about_us')}
                         placeholder="Tell us about yourself or your organization"
                       ></textarea>
                     </div>
@@ -413,11 +483,11 @@ const Settings = () => {
                     <button
                       className="flex justify-center rounded border border-stroke px-6 py-2 font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white"
                       onClick={() => setIsEditing(false)}
+                      type="button"
                     >
                       Cancel
                     </button>
                     <button
-                      className=""
                       className={`flex justify-center rounded bg-primary px-6 py-2 font-medium text-gray hover:bg-opacity-90 disabled:opacity-50 ${isLoading ? "cursor-not-allowed" : ""}`}
                       type="submit"
                       disabled={isLoading}
@@ -447,15 +517,15 @@ const Settings = () => {
                 </h3>
               </div>
               <div className="p-7">
-                  <form onSubmit={handleSubmit}>
+                  <form onSubmit={handleSubmit(onSubmit)}>
                     <div className="mb-4 flex items-center gap-3">
                       <div className="h-14 w-14 rounded-full">
-                        {profilePicture ? (
+                        {profile_picture ? (
                           <Image
                             src={
-                              profilePicture instanceof File
-                                ? URL.createObjectURL(profilePicture)
-                                : profilePicture
+                                profile_picture && profile_picture instanceof File
+      ? URL.createObjectURL(profile_picture)
+      : profile_picture || '/images/user/default-avatar.jpg' // Fallback to default avatar if null
                             }
                             width={56}
                             height={56}
@@ -463,7 +533,7 @@ const Settings = () => {
                           />
                         ) : (
                           <div className="flex h-14 w-14 items-center justify-center rounded-full border border-stroke bg-gray text-black dark:border-strokedark dark:bg-meta-4 dark:text-white">
-                            {user?.fullName?.charAt(0).toUpperCase() || 'U'}
+                            {user?.full_name?.charAt(0).toUpperCase() || 'U'}
                           </div>
                         )}
                       </div>
@@ -473,7 +543,7 @@ const Settings = () => {
                           <button
                             className="text-sm hover:text-primary"
                             onClick={handleDeleteProfilePicture}
-                            disabled={!profilePicture}
+                            disabled={!profile_picture}
                             type="button"
                           >
                             Delete
@@ -484,7 +554,7 @@ const Settings = () => {
                               type="file"
                               accept="image/*"
                               className="hidden"
-                              onChange={(e) => handleFileUpload(e.target.files[0])}
+                              onChange={(e) => handleFileUpload(e.target.files ? e.target.files[0] : null)}
                             />
                           </label>
                         </span>
@@ -499,7 +569,7 @@ const Settings = () => {
                         type="file"
                         accept="image/*"
                         className="absolute inset-0 z-50 m-0 h-full w-full cursor-pointer p-0 opacity-0 outline-none"
-                        onChange={(e) => handleFileUpload(e.target.files[0])}
+                        onChange={(e) => handleFileUpload(e.target.files ? e.target.files[0] : null)}
                       />
                       <div className="flex flex-col items-center justify-center space-y-3">
                         <span className="flex h-10 w-10 items-center justify-center rounded-full border border-stroke bg-white dark:border-strokedark dark:bg-boxdark">
@@ -565,10 +635,6 @@ const Settings = () => {
                       </button>
                     </div>
                     
-                    {/* Display error and success messages */}
-                    {/* Toast Container */}
-                    <ToastContainer />
-                
                     {isUploading && (
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
@@ -589,6 +655,7 @@ const Settings = () => {
           </div>
         </div>
       </div>
+      <ToastContainer />
     </DefaultLayout>
   );
 };

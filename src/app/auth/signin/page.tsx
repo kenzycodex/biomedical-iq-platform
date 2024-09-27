@@ -5,7 +5,7 @@ import Image from "next/image";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import DefaultLayout from "@/components/Layouts/DefaultLayout";
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -33,6 +33,7 @@ interface FormData {
 const SignIn: React.FC = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const pathname = usePathname();
 
   const {
     register,
@@ -75,6 +76,7 @@ const SignIn: React.FC = () => {
   // Automatic token refresh on page reload or revisit
   useEffect(() => {
     const refreshToken = localStorage.getItem("refreshToken");
+
     const refreshAccessToken = async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
@@ -93,46 +95,69 @@ const SignIn: React.FC = () => {
         localStorage.removeItem("refreshToken");
       }
     };
+
     // Only attempt to refresh token if we're not already on the sign-in page
-    if (refreshToken && router.pathname !== "/auth/signin") {
+    if (refreshToken && pathname !== "/auth/signin") {
       refreshAccessToken();
     }
-  }, [router]);
+  }, [pathname, router]); // Include pathname and router in dependency array
 
   // Handle form submission for login
   const onSubmit: SubmitHandler<FormData> = async (data) => {
-    setIsLoading(true);
+      setIsLoading(true);
     
-    // Clears the form after 3 seconds
-    setTimeout(() => reset(), 3000);
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
+        
+        // Make the API call for login with a 15-second timeout
+        const response = await axios.post(`${apiUrl}/auth/login`, data, {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          timeout: 15000,  // Set the timeout to 15 seconds
+        });
     
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
-      const response = await axios.post(`${apiUrl}/auth/login`, data, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.status === 200) {
-        const { access_token, refresh_token, user } = response.data;
-        handleSession(access_token, refresh_token);
-        showToast("Login successful!", "success");
-        setTimeout(() => router.push("/dashboard"), 3000); // Redirect after successful login
-      }
-    } catch (err: any) {
-      if (axios.isAxiosError(err)) {
-        if (err.response) {
-          showToast(err.response.data.error || "Invalid credentials. Please try again.", "error");
-        } else {
-          showToast("No response from server. Please try again later.", "error");
+        if (response.status === 200) {
+          const { access_token, refresh_token, user } = response.data;
+          
+          // Store user data in localStorage
+          localStorage.setItem('userProfile', JSON.stringify(user));
+    
+          // Save tokens and manage session
+          handleSession(access_token, refresh_token);
+    
+          showToast("Login successful!", "success");
+    
+          // Clear the form 2 seconds before redirecting
+          setTimeout(() => {
+            reset();
+          }, 1000); // Clear the form after 1 second (2 seconds before redirection)
+          
+          // Redirect after 3 seconds
+          setTimeout(() => router.push("/dashboard"), 3000);
         }
-      } else {
-        showToast("An error occurred. Please try again.", "error");
+      } catch (err: any) {
+        if (axios.isAxiosError(err)) {
+          if (err.code === 'ECONNABORTED') {
+            // Handle timeout error
+            showToast("The request took too long. Please try again later.", "error");
+          } else if (err.response) {
+            // Server responded with an error
+            showToast(err.response.data.error || "Invalid credentials. Please try again.", "error");
+          } else if (err.request) {
+            // No response was received from the server
+            showToast("No response from server. Please try again later.", "error");
+          } else {
+            // Axios request setup error
+            showToast("An error occurred while processing your request. Please try again.", "error");
+          }
+        } else {
+          // Handle any non-Axios errors
+          showToast("An unexpected error occurred. Please try again.", "error");
+        }
+      } finally {
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (

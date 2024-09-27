@@ -85,50 +85,65 @@ const SignUp: React.FC = () => {
 
   // Handle normal signup
   const onSubmit: SubmitHandler<FormData> = async (data) => {
-    setIsLoading(true);
-    
-    // Clears the form after 5 seconds
-    setTimeout(() => reset(), 5000);
-
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
-
-      const response = await axios.post(`${apiUrl}/auth/register`, data, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.status === 201) {
-        // Clear any existing email in localStorage
+      setIsLoading(true);
+      
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
+        
+        // Clear any existing email in localStorage before making a request
         localStorage.removeItem('user_email');
         
-        // Store email in localStorage for use in verification
-        localStorage.setItem('user_email', data.email);
-        
-        // Clears the form fallback 
-        reset();
-        
-        showToast("Registration successful. Please check your email for verification.", 'success');
-        setTimeout(() => router.push("/auth/verify"), 3000);
-      } else {
-        showToast(response.data.error || "An unexpected error occurred. Please try again.", 'error');
-      }
-    } catch (err: any) {
-      if (axios.isAxiosError(err)) {
-        if (err.response) {
-          showToast(err.response.data.error || "An unexpected error occurred. Please try again.", 'error');
-        } else if (err.request) {
-          showToast("No response received from the server. Please try again later.", 'error');
+        // Make the API call for registration with a 15-second timeout
+        const response = await axios.post(`${apiUrl}/auth/register`, data, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 15000,  // Set the timeout to 15 seconds
+        });
+    
+        if (response.status === 201) {
+          // Store email in localStorage for use in email verification
+          localStorage.setItem('user_email', data.email);
+    
+          // Clear form on success
+          reset();
+    
+          showToast("Registration successful. Please check your email for verification.", 'success');
+    
+          // Redirect to verification page after showing a success message
+          setTimeout(() => router.push("/auth/verify"), 3000);
         } else {
-          showToast("An error occurred while processing your request. Please try again.", 'error');
+          showToast(response.data.error || "An unexpected error occurred. Please try again.", 'error');
         }
-      } else {
-        showToast("An unexpected error occurred. Please try again.", 'error');
+    
+      } catch (err: any) {
+        if (axios.isAxiosError(err)) {
+          // Axios-specific error handling
+          if (err.code === 'ECONNABORTED') {
+            // Handle timeout error specifically
+            console.error("Timeout error: ", err.message);
+            showToast("The request took too long. Please try again later.", 'error');
+          } else if (err.response) {
+            // Server responded with a status code other than 2xx
+            console.error("Response error: ", err.response);
+            showToast(err.response.data.error || "An unexpected error occurred. Please try again.", 'error');
+          } else if (err.request) {
+            // No response was received from the server
+            console.error("No response received: ", err.request);
+            showToast("No response received from the server. Please try again later.", 'error');
+          } else {
+            // Error setting up the request
+            console.error("Axios error: ", err.message);
+            showToast("An error occurred while processing your request. Please try again.", 'error');
+          }
+        } else {
+          // Non-Axios error
+          console.error("Unexpected error: ", err);
+          showToast("An unexpected error occurred. Please try again.", 'error');
+        }
+      } finally {
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (
