@@ -109,6 +109,12 @@ const SignIn: React.FC = () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
         
+        // Clear any existing email in localStorage before making a request
+        localStorage.removeItem('user_email');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userProfile');
+        
         // Make the API call for login with a 15-second timeout
         const response = await axios.post(`${apiUrl}/auth/login`, data, {
           headers: {
