@@ -41,7 +41,7 @@ const DropdownUser = () => {
         // Delay the navigation to ensure the toast is shown
         setTimeout(() => {
           setIsLoading(false);  // Stop loading state before navigation
-          router.push('/auth/login');  // Redirect to login page
+          router.push('/auth/signin');  // Redirect to signin page
         }, 2000);  // Give a 2-second window before redirecting
       }
     } catch (error) {
