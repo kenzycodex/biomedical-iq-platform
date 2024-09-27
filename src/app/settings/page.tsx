@@ -94,6 +94,8 @@ const Settings: React.FC = () => {
             headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
           }
         );
+        
+        // Set user data from the response
         setUser(response.data);
         setProfilePicture(response.data.profile_picture || null);
     
@@ -106,9 +108,10 @@ const Settings: React.FC = () => {
         localStorage.setItem('userProfile', JSON.stringify(response.data));
     
       } catch (error) {
-        handleApiError(error, 'Failed to fetch user profile');
+        // Handle API errors without overriding local data
+        console.error('Failed to fetch user profile:', error);
       }
-    }, [handleApiError, setValue]);
+    }, [setValue]);
     
     useEffect(() => {
       // First, try to load user profile data from local storage
@@ -116,6 +119,7 @@ const Settings: React.FC = () => {
       if (storedUserProfile) {
         const parsedProfile = JSON.parse(storedUserProfile);
     
+        // Set user data from local storage
         setUser(parsedProfile);
         setProfilePicture(parsedProfile.profile_picture || null);
     
@@ -125,72 +129,84 @@ const Settings: React.FC = () => {
         });
       }
     
-      // Then, make an API call to ensure fresh data is fetched
-      fetchUserProfile();
-
-  }, [fetchUserProfile, setValue]);  
+      // Only fetch from the API if no profile is found in local storage
+      if (!storedUserProfile) {
+        fetchUserProfile();
+      }
+    
+      // Optionally, you can refresh the profile after some time or specific conditions
+  }, [fetchUserProfile, setValue]);
 
   const currentUser = JSON.parse(localStorage.getItem('userProfile') || '{}');
 
     const onSubmit: SubmitHandler<FormData> = async (data) => {
-      setIsLoading(true);
+        setIsLoading(true);
     
-      // Create FormData to handle file upload and profile data
-      const formData = new FormData();
+        // Create FormData to handle file upload and profile data
+        const formData = new FormData();
+        let isUpdated = false;
     
-      // Compare each field with the current user data before appending to FormData
-      if (data.full_name !== currentUser.full_name) {
-        formData.append('full_name', data.full_name);
-      }
+        // Compare each field with the current user data before appending to FormData
+        if (data.full_name !== currentUser?.full_name) {
+            formData.append('full_name', data.full_name);
+            isUpdated = true;
+        }
     
-      if (data.phone_number !== currentUser.phone_number) {
-        formData.append('phone_number', data.phone_number);
-      }
+        if (data.phone_number !== currentUser?.phone_number) {
+            formData.append('phone_number', data.phone_number);
+            isUpdated = true;
+        }
     
-      if (data.organization !== currentUser.organization) {
-        formData.append('organization', data.organization);
-      }
+        if (data.organization !== currentUser?.organization) {
+            formData.append('organization', data.organization);
+            isUpdated = true;
+        }
     
-      if (data.address !== currentUser.address) {
-        formData.append('address', data.address || ''); // Optional
-      }
+        if (data.address !== currentUser?.address) {
+            formData.append('address', data.address || ''); // Optional
+            isUpdated = true;
+        }
     
-      if (data.about_us !== currentUser.about_us) {
-        formData.append('about_us', data.about_us || ''); // Optional
-      }
+        if (data.about_us !== currentUser?.about_us) {
+            formData.append('about_us', data.about_us || ''); // Optional
+            isUpdated = true;
+        }
     
-      // Profile picture comparison
-      if (data.profile_picture instanceof FileList && data.profile_picture.length > 0) {
-        formData.append('profile_picture', data.profile_picture[0]); // New file selected
-      } else if (typeof data.profile_picture === 'string' && data.profile_picture !== currentUser.profile_picture) {
-        formData.append('profile_picture', data.profile_picture); // URL string of the existing image
-      }
+        // If no changes were made, return an error message
+        if (!isUpdated) {
+            showToast('No changes were made to the profile', 'warning');
+            setIsLoading(false);
+            return;
+        }
     
-      // If no changes were made, return an error message
-      if (formData.entries().next().done) {
-        showToast('No changes were made to the profile', 'warning');
-        setIsLoading(false);
-        return;
-      }
+        try {
+            const response = await axios.put(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/auth/update_profile`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+                },
+            });
     
-      try {
-        const response = await axios.put(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/auth/update_profile`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',  // Important for file uploads
-            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-          },
-        });
+            const updatedUser = response.data.user;
     
-        const updatedUser = response.data.user;
-        localStorage.setItem('userProfile', JSON.stringify(updatedUser));  // Update the local user profile
-        setUser(updatedUser);  // Update user state
-        setIsEditing(false);  // Exit editing mode
-        showToast('Profile updated successfully', 'success');
-      } catch (error) {
-        handleApiError(error, 'Failed to update profile');
-      } finally {
-        setIsLoading(false);
-      }
+            // Update the local user profile stored in localStorage
+            localStorage.setItem('userProfile', JSON.stringify(updatedUser));
+    
+            // Update the user state in your app
+            setUser(updatedUser);
+    
+            // Exit editing mode
+            setIsEditing(false);
+    
+            // Show success toast
+            showToast('Profile updated successfully', 'success');
+        } catch (error) {
+            handleApiError(error, 'Failed to update profile');
+            console.error(error);
+            showToast('An error occurred while updating your profile', 'error');
+        } finally {
+            setIsLoading(false);
+        }
   };
 
   const handleFileUpload = async (file: File | null) => {
@@ -608,33 +624,6 @@ const Settings: React.FC = () => {
                       </div>
                     </div>
                 
-                    <div className="flex justify-end gap-4.5">
-                      <button
-                        className="flex justify-center rounded border border-stroke px-6 py-2 font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white"
-                        type="button"
-                        onClick={() => setIsEditing(false)}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className={`flex justify-center rounded bg-primary px-6 py-2 font-medium text-gray hover:bg-opacity-90 disabled:opacity-50 ${isLoading ? "cursor-not-allowed" : ""}`}
-                        type="submit"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? (
-                          <div className="flex justify-center items-center">
-                            <RingLoader
-                              color="#ffffff" 
-                              size={22} 
-                              loading={isLoading}
-                            />
-                          </div>
-                        ) : (
-                          "Save"
-                        )}
-                      </button>
-                    </div>
-                    
                     {isUploading && (
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">

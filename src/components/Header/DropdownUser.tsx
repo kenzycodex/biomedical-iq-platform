@@ -1,10 +1,59 @@
-import { useState } from "react";
+"use client";
+
+import { useState, useCallback } from 'react';
 import Link from "next/link";
 import Image from "next/image";
 import ClickOutside from "@/components/ClickOutside";
+import { useRouter } from 'next/navigation';
+import axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { RingLoader } from "react-spinners";
 
 const DropdownUser = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  
+  const handleLogout = useCallback(async () => {
+    setIsLoading(true);  
+    toast.dismiss();  
+
+    try {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/auth/logout`, null, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      });
+
+      // If logout was successful, clear local storage
+      if (response.status === 200) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userProfile');
+
+        // Show success toast notification
+        toast.success('Logout successful. Redirecting...', {
+          position: 'top-right',
+          autoClose: 1500,  // Short delay before redirect
+        });
+
+        // Delay the navigation to ensure the toast is shown
+        setTimeout(() => {
+          setIsLoading(false);  // Stop loading state before navigation
+          router.push('/auth/login');  // Redirect to login page
+        }, 2000);  // Give a 2-second window before redirecting
+      }
+    } catch (error) {
+      // Handle any error that occurs during logout
+      console.error('Logout error: ', error);
+      toast.error('Failed to log out. Please try again later.', {
+        position: 'top-right',
+        autoClose: 3000,  // Longer delay for errors
+      });
+      setIsLoading(false);  // Ensure loading state is stopped in case of error
+    }
+  }, [router]);
 
   return (
     <ClickOutside onClick={() => setDropdownOpen(false)} className="relative">
@@ -107,7 +156,11 @@ const DropdownUser = () => {
               </Link>
             </li>
           </ul>
-          <button className="flex items-center gap-3.5 px-6 py-4 text-sm font-medium duration-300 ease-in-out hover:text-primary lg:text-base">
+          <button
+            className={`flex items-center gap-3.5 px-6 py-4 text-sm font-medium duration-300 ease-in-out hover:text-primary lg:text-base ${isLoading ? "cursor-not-allowed" : ""}`}
+            onClick={handleLogout}
+            disabled={isLoading}
+          >
             <svg
               className="fill-current"
               width="22"
@@ -125,10 +178,31 @@ const DropdownUser = () => {
                 fill=""
               />
             </svg>
-            Sign Out
+            {isLoading ? (
+               <div className="flex justify-center items-center">
+                 <RingLoader
+                   color="#ffffff" 
+                   size={22} 
+                   loading={isLoading}
+                 />
+               </div>
+             ) : (
+               "Sign Out"
+             )}
           </button>
         </div>
       )}
+      <ToastContainer
+            position="top-right"
+            autoClose={3000} 
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            pauseOnHover
+            draggable
+            theme="colored" 
+            role="alert"
+         />
       {/* <!-- Dropdown End --> */}
     </ClickOutside>
   );
