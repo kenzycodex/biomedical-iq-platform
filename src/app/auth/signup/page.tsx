@@ -66,7 +66,7 @@ const SignUp: React.FC = () => {
         autoClose: 5000,
         hideProgressBar: false,
         closeOnClick: true,
-        pauseOnHover: true,
+        pauseOnHover: false,
         draggable: true,
         progress: undefined,
       });
@@ -76,7 +76,7 @@ const SignUp: React.FC = () => {
         autoClose: 5000,
         hideProgressBar: false,
         closeOnClick: true,
-        pauseOnHover: true,
+        pauseOnHover: false,
         draggable: true,
         progress: undefined,
       });
@@ -92,6 +92,9 @@ const SignUp: React.FC = () => {
         
         // Clear any existing email in localStorage before making a request
         localStorage.removeItem('user_email');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userProfile');
         
         // Make the API call for registration with a 15-second timeout
         const response = await axios.post(`${apiUrl}/auth/register`, data, {
