@@ -34,7 +34,7 @@ const showToast = (message: string, type: ToastType) => {
     autoClose: 4000,
     hideProgressBar: true,
     closeOnClick: true,
-    pauseOnHover: true,
+    pauseOnHover: false,
     draggable: false,
     progress: undefined,
     closeButton: true,

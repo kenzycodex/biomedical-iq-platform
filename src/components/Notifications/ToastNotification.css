@@ -1,20 +1,26 @@
 /* Custom toast container */
 .Toastify__toast-container {
   z-index: 9999;
-  max-height: 100px; /* Limit the height of the container */
-  overflow-y: auto; /* Allow scrolling if there are multiple notifications */
-  width: 100%; /* Make the container full width */
-  padding: 0; /* Remove default padding */
+  max-height: 100px;
+  overflow-y: auto;
+  width: 100%;
+  padding: 0;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.Toastify__toast-container::-webkit-scrollbar {
+  display: none;
 }
 
 .custom-toast {
-  max-width: 100%; /* Allow toast to take full width of the container */
+  max-width: 100%;
   width: 100%;
   margin: 0 auto;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  padding: 12px 16px; /* Reduce vertical padding */
-  background-color: #fff;
+  padding: 12px 16px;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
@@ -24,16 +30,16 @@
 
 /* Toast body styling */
 .custom-toast-body {
-  font-size: 14px; /* Slightly reduce font size */
+  font-size: 14px;
   word-wrap: break-word;
-  line-height: 1.4; /* Reduce line height slightly */
+  line-height: 1.4;
   flex-grow: 1;
   padding-right: 20px;
 }
 
 /* Toast icon */
 .custom-toast-icon {
-  font-size: 20px; /* Slightly reduce icon size */
+  font-size: 20px;
   margin-right: 12px;
   flex-shrink: 0;
 }
@@ -42,36 +48,79 @@
 .custom-toast-close {
   background: none;
   border: none;
-  color: #999;
-  font-size: 16px; /* Slightly reduce close button size */
+  font-size: 16px;
   cursor: pointer;
   padding: 0;
   margin-left: auto;
   transition: color 0.2s ease;
 }
 
-/* ... (rest of the styles remain the same) ... */
+/* Toast types with improved contrast */
+.custom-toast-success {
+  background-color: #4CAF50;
+  border-left-color: #45a049;
+  color: #fff;
+}
+
+.custom-toast-error {
+  background-color: #F44336;
+  border-left-color: #d32f2f;
+  color: #fff;
+}
+
+.custom-toast-warning {
+  background-color: #FFC107;
+  border-left-color: #ffa000;
+  color: #000;
+}
+
+.custom-toast-info {
+  background-color: #2196F3;
+  border-left-color: #1976d2;
+  color: #fff;
+}
+
+/* Adjust close button color for better visibility */
+.custom-toast-success .custom-toast-close,
+.custom-toast-error .custom-toast-close,
+.custom-toast-info .custom-toast-close {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.custom-toast-success .custom-toast-close:hover,
+.custom-toast-error .custom-toast-close:hover,
+.custom-toast-info .custom-toast-close:hover {
+  color: #fff;
+}
+
+.custom-toast-warning .custom-toast-close {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.custom-toast-warning .custom-toast-close:hover {
+  color: #000;
+}
 
 /* Responsive adjustments */
 @media (min-width: 768px) {
   .Toastify__toast-container {
-    max-width: 90%; /* Increase width on larger screens */
+    max-width: 90%;
     left: 50%;
     transform: translateX(-50%);
   }
 
   .custom-toast {
-    padding: 14px 20px; /* Slightly increase padding */
+    padding: 14px 20px;
   }
 }
 
 @media (min-width: 1024px) {
   .Toastify__toast-container {
-    max-width: 80%; /* Further increase width on even larger screens */
+    max-width: 80%;
   }
 
   .custom-toast {
-    padding: 16px 24px; /* Further increase padding */
+    padding: 16px 24px;
   }
 
   .custom-toast:hover {
@@ -80,4 +129,44 @@
   }
 }
 
-/* ... (rest of the styles remain the same) ... */
+/* Toast animations */
+@keyframes toast-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.Toastify__toast--animate-right {
+  animation: toast-in-right 0.7s;
+}
+
+.Toastify__toast--animate-left {
+  animation: toast-in-left 0.7s;
+}
+
+/* Optional: Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .custom-toast-warning {
+    color: #000;
+  }
+
+  .custom-toast-warning .custom-toast-close {
+    color: rgba(0, 0, 0, 0.5);
+  }
+
+  .custom-toast-warning .custom-toast-close:hover {
+    color: #000;
+  }
+}
