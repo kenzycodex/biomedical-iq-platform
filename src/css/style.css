@@ -6,7 +6,7 @@
 
 @layer base {
     body {
-        @apply relative z-1 bg-whiten font-satoshi text-base font-normal text-body overflow-hidden; /* Prevent overflow */
+        @apply relative z-1 bg-whiten font-satoshi text-base font-normal text-body; /* Prevent overflow */
     }
 
     /* Add this rule for smaller screens */
