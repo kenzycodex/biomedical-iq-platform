@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { Metadata } from "next";
-import DefaultLayout from "@/components/Layouts/DefaultLayout";
+import MainLayout from "@/components/Layouts/MainLayout";
 
 export const metadata: Metadata = {
   title: "Biomedical IQ - Reset Password",
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 const ForgotPassword: React.FC = () => {
   return (
-    <DefaultLayout>
+    <MainLayout>
       <Breadcrumb pageName="Forgot Password" />
 
       <div className="min-h-screen bg-gray-100 flex items-center justify-center py-10 px-4 sm:px-6 lg:px-8">
@@ -76,7 +76,7 @@ const ForgotPassword: React.FC = () => {
           </div>
         </div>
       </div>
-    </DefaultLayout>
+    </MainLayout>
   );
 };
 

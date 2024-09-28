@@ -11,8 +11,7 @@ import axios from 'axios';
 import DefaultLayout from "@/components/Layouts/DefaultLayout";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { RingLoader } from "react-spinners";
-import { ToastContainer, toast, ToastPosition } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { showToast } from "@/components/Notifications/ToastNotification";
 
 interface FormData {
   full_name: string;
@@ -45,25 +44,6 @@ const Settings: React.FC = () => {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: yupResolver(schema),
   });
-  
-  // Display toast notifications
-  const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
-      const toastConfig = {
-        position: "top-right" as ToastPosition,
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-        progress: undefined,
-      };
-    
-      if (type === 'warning') {
-        toast(message, { ...toastConfig, style: { backgroundColor: '#3498db', color: '#fff' } }); // Blue for warning
-      } else {
-        toast[type](message, toastConfig); // Default for success and error
-      }
-  };
 
   // Memoize the handleApiError function
   const handleApiError = useCallback((error: unknown, defaultMessage: string) => {
@@ -488,7 +468,7 @@ const Settings: React.FC = () => {
 
                       <textarea
                         className="w-full rounded border border-stroke bg-gray py-3 pl-11.5 pr-4.5 text-black focus:border-primary focus-visible:outline-none dark:border-strokedark dark:bg-meta-4 dark:text-white dark:focus:border-primary"
-                        rows={10}
+                        rows={6}
                         {...register('about_us')}
                         placeholder="Tell us about yourself or your organization"
                       ></textarea>
@@ -536,23 +516,54 @@ const Settings: React.FC = () => {
                   <form onSubmit={handleSubmit(onSubmit)}>
                     <div className="mb-4 flex items-center gap-3">
                       <div className="h-14 w-14 rounded-full">
-                        {profile_picture ? (
-                          <Image
-                            src={
-                                profile_picture && profile_picture instanceof File
-      ? URL.createObjectURL(profile_picture)
-      : profile_picture || '/images/user/default-avatar.jpg' // Fallback to default avatar if null
-                            }
-                            width={56}
-                            height={56}
-                            alt="User"
-                          />
-                        ) : (
-                          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-stroke bg-gray text-black dark:border-strokedark dark:bg-meta-4 dark:text-white">
-                            {user?.full_name?.charAt(0).toUpperCase() || 'U'}
-                          </div>
-                        )}
-                      </div>
+                          {profile_picture ? (
+                            <Image
+                              src={
+                                profile_picture instanceof File
+                                  ? URL.createObjectURL(profile_picture)
+                                  : profile_picture || '/images/user/default-avatar.jpg' // Fallback to default avatar if null
+                              }
+                              width={56}
+                              height={56}
+                              alt="User"
+                            />
+                          ) : (
+                            (() => {
+                              // Retrieve user profile from local storage
+                              const storedUser = JSON.parse(localStorage.getItem('userProfile'));
+                              const storedProfilePicture = storedUser?.profile_picture;
+                        
+                              // Check for profile picture in local storage or fallback to default or initials
+                              if (storedProfilePicture) {
+                                return (
+                                  <Image
+                                    src={storedProfilePicture}
+                                    width={56}
+                                    height={56}
+                                    alt="User"
+                                  />
+                                );
+                              } else if (storedUser?.full_name) {
+                                const initials = storedUser.full_name.split(' ')
+                                  .map((name) => name.charAt(0).toUpperCase())
+                                  .join('')
+                                  .slice(0, 2); // Get first and second letters from full name
+                        
+                                return (
+                                  <div className="flex h-14 w-14 items-center justify-center rounded-full border border-stroke bg-gray text-black dark:border-strokedark dark:bg-meta-4 dark:text-white">
+                                    {initials}
+                                  </div>
+                                );
+                              } else {
+                                return (
+                                  <div className="flex h-14 w-14 items-center justify-center rounded-full border border-stroke bg-gray text-black dark:border-strokedark dark:bg-meta-4 dark:text-white">
+                                    U
+                                  </div>
+                                );
+                              }
+                            })()
+                          )}
+                       </div>
                       <div>
                         <span className="mb-1.5 text-black dark:text-white">Edit your photo</span>
                         <span className="flex gap-2.5">
@@ -644,7 +655,6 @@ const Settings: React.FC = () => {
           </div>
         </div>
       </div>
-      <ToastContainer />
     </DefaultLayout>
   );
 };

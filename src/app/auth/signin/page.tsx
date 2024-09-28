@@ -3,22 +3,26 @@
 import Link from "next/link";
 import Image from "next/image";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import DefaultLayout from "@/components/Layouts/DefaultLayout";
 import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { showToast } from "@/components/Notifications/ToastNotification";
 import { RingLoader } from "react-spinners";
+import MainLayout from "@/components/Layouts/MainLayout";
 
 // Validation schema using Yup
 const schema = yup.object().shape({
   login_info: yup
     .string()
-    .required("Email or phone number is required"),
+    .required("Email or phone number is required")
+    .test('is-valid', 'Enter a valid email or phone number', (value) => {
+      const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+      const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+      return emailRegex.test(value) || phoneRegex.test(value);
+    }),
   password: yup
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -43,29 +47,6 @@ const SignIn: React.FC = () => {
   } = useForm<FormData>({
     resolver: yupResolver(schema),
   });
-
-  // Display toast notifications
-  const showToast = (message: string, type: 'success' | 'error') => {
-    if (type === 'success') {
-      toast.success(message, {
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-        progress: undefined,
-      });
-    } else if (type === 'error') {
-      toast.error(message, {
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-        progress: undefined,
-      });
-    }
-  };
 
   // Function to handle token storage and session persistence
   const handleSession = (accessToken: string, refreshToken: string) => {
@@ -120,7 +101,7 @@ const SignIn: React.FC = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          timeout: 30000,  // Set the timeout to 15 seconds
+          timeout: 30000,  // Set the timeout to 30 seconds
         });
     
         if (response.status === 200) {
@@ -134,13 +115,11 @@ const SignIn: React.FC = () => {
     
           showToast("Login successful!", "success");
     
-          // Clear the form 2 seconds before redirecting
-          setTimeout(() => {
-            reset();
-          }, 1000); // Clear the form after 1 second (2 seconds before redirection)
+          // Clear form on success
+          reset();
           
-          // Redirect after 3 seconds
-          setTimeout(() => router.push("/dashboard"), 3000);
+          // Redirect after 1 seconds
+          setTimeout(() => router.push("/dashboard"), 1000);
         }
       } catch (err: any) {
         if (axios.isAxiosError(err)) {
@@ -167,7 +146,7 @@ const SignIn: React.FC = () => {
   };
 
   return (
-    <DefaultLayout>
+    <MainLayout>
       <Breadcrumb pageName="Sign In" />
 
       <div className="min-h-screen bg-gray-100 rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
@@ -334,7 +313,7 @@ const SignIn: React.FC = () => {
                   </label>
                   <div className="relative">
                     <input
-                      type="email"
+                      type="text"
                       {...register("login_info")}
                       placeholder="Enter your email or phone number"
                       className="w-full rounded-lg border border-stroke bg-transparent py-4 pl-6 pr-10 text-black outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
@@ -422,10 +401,6 @@ const SignIn: React.FC = () => {
                   </button>
                 </div>
                 
-                {/* Display error and success messages */}
-                {/* Toast Container */}
-                <ToastContainer />
-
                 <div className="mt-6 text-center">
                   <p>
                     Don’t have any account?{" "}
@@ -445,7 +420,7 @@ const SignIn: React.FC = () => {
           </div>
         </div>
       </div>
-    </DefaultLayout>
+    </MainLayout>
   );
 };
 

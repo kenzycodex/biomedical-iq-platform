@@ -8,19 +8,35 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import DefaultLayout from "@/components/Layouts/DefaultLayout";
 import { RingLoader } from 'react-spinners';
 import axios from 'axios';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { showToast } from "@/components/Notifications/ToastNotification";
+import MainLayout from "@/components/Layouts/MainLayout";
 
 // Validation schema using Yup
 const schema = yup.object().shape({
-  full_name: yup.string().required("Full name is required"),
-  email: yup.string().email("Invalid email").required("Email is required"),
-  phone_number: yup.string().required("Phone number is required"),
+  full_name: yup
+    .string()
+    .required("Full name is required")
+    .max(50, "Full name cannot be more than 50 characters"),  // Limit to 50 characters
+  
+  email: yup
+    .string()
+    .email("Invalid email address. Example: name@example.com")
+    .required("Email is required"),
+    
+  phone_number: yup
+    .string()
+    .matches(
+      /^\+?[1-9]\d{1,14}$/,  // Regex for phone number with optional "+" and international format
+      "Phone number is not valid. It should include the country code (e.g., +2341234567890)"
+    )
+    .required("Phone number is required"),
+  
   organization: yup.string().required("Organization is required"),
+  
   address: yup.string().required("Address is required"),
+  
   password: yup
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -29,6 +45,7 @@ const schema = yup.object().shape({
       "Password must contain uppercase, lowercase, number, and special character"
     )
     .required("Password is required"),
+    
   confirm_password: yup
     .string()
     .oneOf([yup.ref("password")], "Passwords must match")
@@ -58,30 +75,6 @@ const SignUp: React.FC = () => {
   } = useForm<FormData>({
     resolver: yupResolver(schema),
   });
-  
-  const showToast = (message: string, type: 'success' | 'error') => {
-    if (type === 'success') {
-      toast.success(message, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-        progress: undefined,
-      });
-    } else if (type === 'error') {
-      toast.error(message, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-        progress: undefined,
-      });
-    }
-  };
 
   // Handle normal signup
   const onSubmit: SubmitHandler<FormData> = async (data) => {
@@ -114,7 +107,7 @@ const SignUp: React.FC = () => {
           showToast("Registration successful. Please check your email for verification.", 'success');
     
           // Redirect to verification page after showing a success message
-          setTimeout(() => router.push("/auth/verify"), 3000);
+          setTimeout(() => router.push("/auth/verify"), 2000);
         } else {
           showToast(response.data.error || "An unexpected error occurred. Please try again.", 'error');
         }
@@ -150,7 +143,7 @@ const SignUp: React.FC = () => {
   };
 
   return (
-    <DefaultLayout>
+    <MainLayout>
       <Breadcrumb pageName="Sign Up" />
 
       <div className="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
@@ -584,10 +577,6 @@ const SignUp: React.FC = () => {
                     </button>
                   </div>
                 
-                {/* Display error and success messages */}
-                {/* Toast Container */}
-                <ToastContainer />
-          
                 <div className="mt-6 text-center">
                     <p>
                       Already have an account?{" "}
@@ -601,7 +590,7 @@ const SignUp: React.FC = () => {
             </div>
           </div>
         </div>
-      </DefaultLayout>
+      </MainLayout>
   );
 };
 

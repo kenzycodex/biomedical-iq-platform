@@ -3,21 +3,27 @@
 import Link from "next/link";
 import Image from "next/image";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import DefaultLayout from "@/components/Layouts/DefaultLayout";
 import React, { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
+import { showToast } from "@/components/Notifications/ToastNotification";
 import { RingLoader } from "react-spinners";
+import MainLayout from "@/components/Layouts/MainLayout";
 
 // Yup schema for validation
 const schema = yup.object().shape({
-  email: yup.string().email("Invalid email").required("Email is required"),
-  code: yup.string().required("Verification code is required")
+  email: yup
+    .string()
+    .email("Invalid email address. Example: name@example.com")  // Email format validation
+    .required("Email is required"),
+    
+  code: yup
+    .string()
+    .matches(/^\d{6}$/, "Verification code must be exactly 6 digits")  // Regex to ensure 6 numeric digits
+    .required("Verification code is required")
 });
 
 // TypeScript interface for form data
@@ -41,30 +47,6 @@ const VerifyAccount: React.FC = () => {
   } = useForm<VerifyData>({
     resolver: yupResolver(schema)
   });
-
-  const showToast = (message: string, type: 'success' | 'error') => {
-    if (type === 'success') {
-      toast.success(message, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-    } else if (type === 'error') {
-      toast.error(message, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-    }
-  };
 
   useEffect(() => {
     const email = localStorage.getItem("user_email");
@@ -114,7 +96,7 @@ const VerifyAccount: React.FC = () => {
 
   const handleResend = async () => {
     setResendDisabled(true);
-    setTimer(15);
+    setTimer(20);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
       const response = await axios.post(`${apiUrl}/auth/resend-verification`, { email: storedEmail || "" }, {
@@ -148,7 +130,7 @@ const VerifyAccount: React.FC = () => {
   }, [timer, resendDisabled]);
 
   return (
-    <DefaultLayout>
+    <MainLayout>
       <Breadcrumb pageName="Verify 2FA Code" />
    
       <div className="min-h-screen bg-gray-100 rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark flex items-center justify-center overflow-hidden sm:overflow-auto sm:min-h-0">
@@ -402,11 +384,7 @@ const VerifyAccount: React.FC = () => {
                     )}
                   </button>
                 </div>
-                
-                {/* Display error and success messages */}
-                {/* Toast Container */}
-                <ToastContainer />
-
+           
                 <div className="mt-6 text-center">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Didn&#39;t receive the code?{" "}
@@ -424,7 +402,7 @@ const VerifyAccount: React.FC = () => {
           </div>
         </div>
       </div>
-    </DefaultLayout>
+    </MainLayout>
   );
 };
 

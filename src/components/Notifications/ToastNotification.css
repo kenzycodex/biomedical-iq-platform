@@ -1,0 +1,39 @@
+/* Custom toast container */
+.custom-toast {
+    max-width: 95%; /* Set maximum width to 95% of the screen */
+    width: 100%; /* Make it responsive to fit small screens */
+    margin: 0 auto; /* Center the toast */
+    border-radius: 8px; /* Add rounded corners */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
+    padding: 16px; /* Add padding for spacing */
+    background-color: #fff; /* Set background color */
+    transition: transform 0.2s ease; /* Smooth transition for animations */
+    z-index: 9999; /* Set a high z-index value to ensure it's on top */
+}
+
+/* Toast body styling */
+.custom-toast-body {
+    font-size: 16px; /* Adjust font size */
+    word-wrap: break-word; /* Ensure long messages wrap properly */
+    line-height: 1.5; /* Improve readability */
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+    .custom-toast {
+        max-width: 500px; /* Set a maximum width for larger screens */
+        padding: 20px; /* Increase padding for larger screens */
+    }
+}
+
+@media (min-width: 1024px) {
+    .custom-toast {
+        max-width: 600px; /* Set a larger max-width for desktops */
+        padding: 24px; /* More padding for better aesthetics */
+    }
+
+    /* Add a pop-up effect on larger screens */
+    .custom-toast:hover {
+        transform: scale(1.05); /* Slightly enlarge the toast on hover */
+    }
+}
