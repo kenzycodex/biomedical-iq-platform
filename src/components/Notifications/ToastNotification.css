@@ -2,9 +2,10 @@
 .Toastify__toast-container {
   position: fixed;
   top: 1rem;
-  right: 1rem;
-  width: 320px;
-  max-width: calc(100vw - 2rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: calc(100% - 2rem);
   z-index: 9999;
 }
 
@@ -94,11 +95,19 @@
 }
 
 /* Responsive design */
-@media (max-width: 480px) {
+@media (min-width: 768px) {
+  .Toastify__toast-container {
+    width: 80%;
+  }
+}
+
+@media (max-width: 767px) {
   .Toastify__toast-container {
     width: 100%;
+    left: 0;
     right: 0;
-    top: 0;
+    transform: none;
+    max-width: 100%;
   }
 
   .custom-toast {
