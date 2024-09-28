@@ -1,39 +1,131 @@
 /* Custom toast container */
+.Toastify__toast-container {
+  z-index: 9999;
+}
+
 .custom-toast {
-    max-width: 95%; /* Set maximum width to 95% of the screen */
-    width: 100%; /* Make it responsive to fit small screens */
-    margin: 0 auto; /* Center the toast */
-    border-radius: 8px; /* Add rounded corners */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Add a subtle shadow */
-    padding: 16px; /* Add padding for spacing */
-    background-color: #fff; /* Set background color */
-    transition: transform 0.2s ease; /* Smooth transition for animations */
-    z-index: 9999; /* Set a high z-index value to ensure it's on top */
+  max-width: 95%;
+  width: 100%;
+  margin: 0 auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  background-color: #fff;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-left: 4px solid;
 }
 
 /* Toast body styling */
 .custom-toast-body {
-    font-size: 16px; /* Adjust font size */
-    word-wrap: break-word; /* Ensure long messages wrap properly */
-    line-height: 1.5; /* Improve readability */
+  font-size: 16px;
+  word-wrap: break-word;
+  line-height: 1.5;
+  flex-grow: 1;
+  padding-right: 20px;
+}
+
+/* Toast icon */
+.custom-toast-icon {
+  font-size: 24px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+/* Toast close button */
+.custom-toast-close {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+  transition: color 0.2s ease;
+}
+
+.custom-toast-close:hover {
+  color: #333;
+}
+
+/* Toast types */
+.custom-toast-success {
+  border-left-color: #4CAF50;
+}
+
+.custom-toast-error {
+  border-left-color: #F44336;
+}
+
+.custom-toast-warning {
+  border-left-color: #FFC107;
+}
+
+.custom-toast-info {
+  border-left-color: #2196F3;
 }
 
 /* Responsive adjustments */
 @media (min-width: 768px) {
-    .custom-toast {
-        max-width: 500px; /* Set a maximum width for larger screens */
-        padding: 20px; /* Increase padding for larger screens */
-    }
+  .custom-toast {
+    max-width: 400px;
+    padding: 20px;
+  }
 }
 
 @media (min-width: 1024px) {
-    .custom-toast {
-        max-width: 600px; /* Set a larger max-width for desktops */
-        padding: 24px; /* More padding for better aesthetics */
-    }
+  .custom-toast {
+    max-width: 450px;
+    padding: 24px;
+  }
 
-    /* Add a pop-up effect on larger screens */
-    .custom-toast:hover {
-        transform: scale(1.05); /* Slightly enlarge the toast on hover */
-    }
+  .custom-toast:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Toast animations */
+@keyframes toast-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.Toastify__toast--animate-right {
+  animation: toast-in-right 0.7s;
+}
+
+.Toastify__toast--animate-left {
+  animation: toast-in-left 0.7s;
+}
+
+/* Optional: Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .custom-toast {
+    background-color: #333;
+    color: #fff;
+  }
+
+  .custom-toast-close {
+    color: #ccc;
+  }
+
+  .custom-toast-close:hover {
+    color: #fff;
+  }
 }
