@@ -1,15 +1,19 @@
 /* Custom toast container */
 .Toastify__toast-container {
   z-index: 9999;
+  max-height: 100px; /* Limit the height of the container */
+  overflow-y: auto; /* Allow scrolling if there are multiple notifications */
+  width: 100%; /* Make the container full width */
+  padding: 0; /* Remove default padding */
 }
 
 .custom-toast {
-  max-width: 95%;
+  max-width: 100%; /* Allow toast to take full width of the container */
   width: 100%;
   margin: 0 auto;
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  padding: 16px;
+  padding: 12px 16px; /* Reduce vertical padding */
   background-color: #fff;
   transition: all 0.3s ease;
   display: flex;
@@ -20,16 +24,16 @@
 
 /* Toast body styling */
 .custom-toast-body {
-  font-size: 16px;
+  font-size: 14px; /* Slightly reduce font size */
   word-wrap: break-word;
-  line-height: 1.5;
+  line-height: 1.4; /* Reduce line height slightly */
   flex-grow: 1;
   padding-right: 20px;
 }
 
 /* Toast icon */
 .custom-toast-icon {
-  font-size: 24px;
+  font-size: 20px; /* Slightly reduce icon size */
   margin-right: 12px;
   flex-shrink: 0;
 }
@@ -39,46 +43,35 @@
   background: none;
   border: none;
   color: #999;
-  font-size: 18px;
+  font-size: 16px; /* Slightly reduce close button size */
   cursor: pointer;
   padding: 0;
   margin-left: auto;
   transition: color 0.2s ease;
 }
 
-.custom-toast-close:hover {
-  color: #333;
-}
-
-/* Toast types */
-.custom-toast-success {
-  border-left-color: #4CAF50;
-}
-
-.custom-toast-error {
-  border-left-color: #F44336;
-}
-
-.custom-toast-warning {
-  border-left-color: #FFC107;
-}
-
-.custom-toast-info {
-  border-left-color: #2196F3;
-}
+/* ... (rest of the styles remain the same) ... */
 
 /* Responsive adjustments */
 @media (min-width: 768px) {
+  .Toastify__toast-container {
+    max-width: 90%; /* Increase width on larger screens */
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
   .custom-toast {
-    max-width: 400px;
-    padding: 20px;
+    padding: 14px 20px; /* Slightly increase padding */
   }
 }
 
 @media (min-width: 1024px) {
+  .Toastify__toast-container {
+    max-width: 80%; /* Further increase width on even larger screens */
+  }
+
   .custom-toast {
-    max-width: 450px;
-    padding: 24px;
+    padding: 16px 24px; /* Further increase padding */
   }
 
   .custom-toast:hover {
@@ -87,45 +80,4 @@
   }
 }
 
-/* Toast animations */
-@keyframes toast-in-right {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes toast-in-left {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-.Toastify__toast--animate-right {
-  animation: toast-in-right 0.7s;
-}
-
-.Toastify__toast--animate-left {
-  animation: toast-in-left 0.7s;
-}
-
-/* Optional: Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .custom-toast {
-    background-color: #333;
-    color: #fff;
-  }
-
-  .custom-toast-close {
-    color: #ccc;
-  }
-
-  .custom-toast-close:hover {
-    color: #fff;
-  }
-}
+/* ... (rest of the styles remain the same) ... */
