@@ -1,61 +1,49 @@
 "use client";
 
 import React from 'react';
-import { ToastContainer, toast, ToastPosition, ToastContentProps } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './ToastNotification.css';
 
-// Custom Toast component
-const CustomToast: React.FC<ToastContentProps> = ({ closeToast, type, message }) => {
-  let icon = '✉️'; // Default icon
+type ToastType = 'success' | 'error' | 'warning' | 'info';
 
-  switch (type) {
-    case 'success':
-      icon = '✅';
-      break;
-    case 'error':
-      icon = '❌';
-      break;
-    case 'warning':
-      icon = '⚠️';
-      break;
-    case 'info':
-      icon = 'ℹ️';
-      break;
-  }
+interface CustomToastProps {
+  type: ToastType;
+  message: string;
+}
+
+const CustomToast: React.FC<CustomToastProps> = ({ type, message }) => {
+  const iconMap: Record<ToastType, string> = {
+    success: '✅',
+    error: '❌',
+    warning: '⚠️',
+    info: 'ℹ️',
+  };
 
   return (
     <div className={`custom-toast custom-toast-${type}`}>
-      <span className="custom-toast-icon">{icon}</span>
+      <span className="custom-toast-icon">{iconMap[type]}</span>
       <div className="custom-toast-body">{message}</div>
-      <button onClick={closeToast} className="custom-toast-close">×</button>
     </div>
   );
 };
 
-// Configuration for toast
-const toastConfig = {
-  position: "top-center" as ToastPosition,
-  autoClose: 4000,
-  hideProgressBar: true,
-  closeOnClick: true,
-  pauseOnHover: true,
-  draggable: false,
-  progress: undefined,
-  closeButton: false,
-  icon: false,
-};
-
-// Function to show toast
-const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
+const showToast = (message: string, type: ToastType) => {
   toast(<CustomToast type={type} message={message} />, {
-    ...toastConfig,
+    position: "top-center",
+    autoClose: 4000,
+    hideProgressBar: true,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: false,
+    progress: undefined,
+    closeButton: true,
+    icon: false,
     className: `custom-toast custom-toast-${type}`,
     bodyClassName: 'custom-toast-body',
   });
 };
 
-// Custom ToastContainer component
 const CustomToastContainer: React.FC = () => (
   <ToastContainer
     position="top-center"
