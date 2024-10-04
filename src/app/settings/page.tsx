@@ -510,14 +510,14 @@ const Settings: React.FC = () => {
             <div className="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
               <div className="border-b border-stroke px-7 py-4 dark:border-strokedark">
                 <h3 className="font-medium text-black dark:text-white">
-                  Your Photo
+                  Profile Photo
                 </h3>
               </div>
               <div className="p-7">
                   <form onSubmit={handleSubmit(onSubmit)}>
                     <div className="mb-4 flex items-center gap-3">
                       <div className="h-14 w-14 rounded-full">
-                       {GetUserAvatarJSX(profile_picture)}
+                       {GetUserAvatarJSX(profile_picture, 56, 56)}
                        </div>
                       <div>
                         <span className="mb-1.5 text-black dark:text-white">Edit your photo</span>

@@ -1,9 +1,9 @@
 "use client";
 
 import React from 'react';
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer, toast, ToastOptions } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import './ToastNotification.css';
+import './ToastNotification.css'; 
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -28,8 +28,9 @@ const CustomToast: React.FC<CustomToastProps> = ({ type, message }) => {
   );
 };
 
+// Wrapper function to show a toast with a consistent look and feel
 const showToast = (message: string, type: ToastType) => {
-  toast(<CustomToast type={type} message={message} />, {
+  const options: ToastOptions = {
     position: "top-center",
     autoClose: 4000,
     hideProgressBar: true,
@@ -41,14 +42,17 @@ const showToast = (message: string, type: ToastType) => {
     icon: false,
     className: `custom-toast custom-toast-${type}`,
     bodyClassName: 'custom-toast-body',
-  });
+  };
+  
+  toast(<CustomToast type={type} message={message} />, options);
 };
 
+// Custom ToastContainer to be used throughout the app
 const CustomToastContainer: React.FC = () => (
   <ToastContainer
     position="top-center"
     autoClose={4000}
-    hideProgressBar
+    hideProgressBar={true}
     newestOnTop={false}
     closeOnClick
     rtl={false}

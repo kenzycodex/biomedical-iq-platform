@@ -12,7 +12,6 @@
     /* Add this rule for smaller screens */
     @media (max-width: 768px) {
         html, body {
-            overflow-x: hidden; /* Hide horizontal overflow */
             width: 100vw; /* Lock width to viewport */
             max-width: 100%; /* Prevent content from exceeding width */
             position: relative; /* Establish positioning context */

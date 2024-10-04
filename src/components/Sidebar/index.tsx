@@ -233,8 +233,8 @@ const menuGroups = [
             </defs>
           </svg>
         ),
-        label: "Chart",
-        route: "/chart",
+        label: "Wards",
+        route: "/wards",
       },
       {
         icon: (
