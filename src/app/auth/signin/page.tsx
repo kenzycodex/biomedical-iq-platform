@@ -27,11 +27,13 @@ const schema = yup.object().shape({
     .string()
     .min(8, "Password must be at least 8 characters")
     .required("Password is required"),
+  remember_me: yup.boolean().oneOf([true, false]).required(),
 });
 
 interface FormData {
   login_info: string;
   password: string;
+  remember_me: boolean;
 }
 
 const SignIn: React.FC = () => {
@@ -400,6 +402,22 @@ const SignIn: React.FC = () => {
                     )}
                   </button>
                 </div>
+
+                {/* Remember me and Forgot password */}
+                <div className="flex justify-between items-center mb-6">
+                  <label className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                    <input
+                      type="checkbox"
+                      {...register("remember_me")}
+                      defaultChecked={false}
+                      className="mr-2"
+                    />
+                    Remember me
+                  </label>
+                  <Link href="/auth/forgotpass" className="text-sm font-medium text-primary hover:text-primary-dark">
+                    Forgot password?
+                  </Link>
+                </div>
                 
                 <div className="mt-6 text-center">
                   <p>
@@ -410,9 +428,10 @@ const SignIn: React.FC = () => {
                   </p>
                 </div>
                 
+                {/* Verification CTA */}
                 <div className="mt-6 text-center">
-                  <Link href="/auth/forgotpass" className="text-primary">
-                    Forgot Password?
+                  <Link href="/auth/verify" className="text-primary">
+                    Verify your account
                   </Link>
                 </div>
               </form>

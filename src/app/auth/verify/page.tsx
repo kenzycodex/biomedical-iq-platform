@@ -37,57 +37,62 @@ const VerifyAccount: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [resendDisabled, setResendDisabled] = useState(false);
   const [timer, setTimer] = useState(0);
-  const [storedEmail, setStoredEmail] = useState<string | null>("");
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors }
   } = useForm<VerifyData>({
     resolver: yupResolver(schema)
   });
 
+  // Set stored email when component mounts
   useEffect(() => {
     const email = localStorage.getItem("user_email");
     if (email) {
-      setStoredEmail(email);
+      setValue("email", email);
     }
-  }, []);
+  }, [setValue]);
 
   const onSubmit: SubmitHandler<VerifyData> = async (data) => {
     setIsLoading(true);
-    
-    // Clears the form after 4 seconds
-    setTimeout(() => reset(), 4000);
+
     try {
       const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
-      const response = await axios.post(`${apiUrl}/auth/verify-email`, { email: storedEmail || data.email, code: data.code }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await axios.post(
+        `${apiUrl}/auth/verify-email`,
+        { email: data.email, code: data.code },
+        {
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }
+      );
 
       if (response.status === 200) {
-        // Clear any existing email in localStorage
-        localStorage.removeItem('user_email');
-        
-        showToast("Email verified successfully. You can now log in.", 'success');
+        // Clear both email and code fields upon successful verification
+        localStorage.removeItem("user_email");
+        showToast("Email verified successfully. You can now log in.", "success");
+        reset(); // Reset both email and code
         setTimeout(() => router.push("/auth/signin"), 3000);
       } else {
-        showToast(response.data.error || "Verification failed. Try again.", 'error');
+        showToast(response.data.error || "Verification failed. Try again.", "error");
+        // Clear only the code field if verification fails
+        setValue("code", "");
       }
     } catch (err: any) {
       if (axios.isAxiosError(err)) {
         if (err.response) {
-          showToast(err.response.data.error || "An error occurred. Try again.", 'error');
+          showToast(err.response.data.error || "An error occurred. Try again.", "error");
         } else if (err.request) {
-          showToast("No response from server. Please try again later.", 'error');
+          showToast("No response from server. Please try again later.", "error");
         } else {
-          showToast("An error occurred while processing your request.", 'error');
+          showToast("An error occurred while processing your request.", "error");
         }
       } else {
-        showToast("An unexpected error occurred.", 'error');
+        showToast("An unexpected error occurred.", "error");
       }
     } finally {
       setIsLoading(false);
@@ -99,22 +104,27 @@ const VerifyAccount: React.FC = () => {
     setTimer(20);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
-      const response = await axios.post(`${apiUrl}/auth/resend-verification`, { email: storedEmail || "" }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await axios.post(
+        `${apiUrl}/auth/resend-verification`,
+        { email: "" },
+        {
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }
+      );
 
       if (response.status === 200) {
-        showToast("Verification code resent successfully!", 'success');
+        showToast("Verification code resent successfully!", "success");
       } else {
-        showToast("Failed to resend verification code. Try again.", 'error');
+        showToast("Failed to resend verification code. Try again.", "error");
       }
     } catch (err: any) {
-      showToast("Error resending verification code. Please try again later.", 'error');
+      showToast("Error resending verification code. Please try again later.", "error");
     }
   };
 
+  // Timer countdown for resend button
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (resendDisabled && timer > 0) {
@@ -298,10 +308,8 @@ const VerifyAccount: React.FC = () => {
                   <div className="relative">
                     <input
                       type="email"
-                      value={storedEmail || ""}
-                      readOnly={!!storedEmail}
                       {...register("email")}
-                      placeholder={storedEmail ? "" : "Enter your email"}
+                      placeholder="Enter your email"
                       className="w-full rounded-lg border border-stroke bg-transparent py-4 pl-6 pr-10 outline-none focus:border-primary focus-visible:shadow-none dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
                     />
                     <span className="absolute right-4 top-4">
