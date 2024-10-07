@@ -55,7 +55,7 @@ const DropdownUser = () => {
         setTimeout(() => {
           setIsLoading(false);  // Stop loading state before navigation
           router.push('/auth/signin');  // Redirect to signin page
-        }, 2000);  // Give a 2-second window before redirecting
+        }, 1000);  // Give a 1-second window before redirecting
       }
     } catch (error) {
       // Handle any error that occurs during logout

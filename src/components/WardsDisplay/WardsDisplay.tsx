@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-  Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
-  TextField, IconButton, Typography, Box, CircularProgress
+  Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, 
+  IconButton, Typography, Box, CircularProgress
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 import { showToast } from "@/components/Notifications/ToastNotification";
@@ -13,8 +13,8 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 
-// Import FallbackWards component and defaultWards data
-import FallbackWards, { defaultWards } from "./FallbackWards";
+// Import FallbackWards component
+import FallbackWards from "./FallbackWards";  // No need for defaultWards anymore
 
 const wardSchema = yup.object().shape({
   ward_name: yup.string().required("Ward name is required"),
@@ -31,7 +31,7 @@ interface WardFormData {
 }
 
 const WardsDisplay: React.FC = () => {
-  const [wards, setWards] = useState<any[]>(defaultWards); // Set default wards initially
+  const [wards, setWards] = useState<any[]>([]);  // Initialize with an empty array, no default wards
   const [isLoading, setIsLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<'add' | 'edit' | 'delete'>('add');
@@ -45,7 +45,6 @@ const WardsDisplay: React.FC = () => {
     loadWards();
   }, []);
 
-  // Load wards from backend with improved error handling
   const loadWards = async () => {
     setIsLoading(true);
     try {
@@ -53,20 +52,12 @@ const WardsDisplay: React.FC = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
       });
       if (response.data.wards.length > 0) {
-        setWards(response.data.wards);  // Overwrite default wards with fetched data
+        setWards(response.data.wards);  // Replace default wards with fetched data
+      } else {
+        setWards([]);  // Ensure no default wards remain if nothing is returned
       }
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        if (error.response && error.response.status === 403) {
-          showToast('You do not have permission to view wards.', 'error');
-        } else {
-          showToast('Failed to fetch wards. Showing default wards.', 'error');
-        }
-      } else if (error instanceof Error) {
-        showToast(`Unexpected error: ${error.message}. Showing default wards.`, 'error');
-      } else {
-        showToast('An unknown error occurred. Showing default wards.', 'error');
-      }
+      showToast('Failed to fetch wards. Showing default view.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +72,7 @@ const WardsDisplay: React.FC = () => {
       setValue('capacity', ward.capacity);
       setValue('floor_number', ward.floor_number);
     } else {
-      reset();  // Reset the form for adding a new ward
+      reset();
     }
     setOpenDialog(true);
   };
@@ -105,19 +96,9 @@ const WardsDisplay: React.FC = () => {
         showToast('Ward updated successfully.', 'success');
       }
       handleCloseDialog();
-      loadWards();  // Reload wards after adding/updating
+      loadWards();  // Reload wards after adding/updating to reflect changes
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        if (error.response && error.response.status === 409) {
-          showToast('Ward with this name already exists.', 'error');
-        } else {
-          showToast(`Failed to ${dialogMode === 'add' ? 'add' : 'update'} ward. Please try again.`, 'error');
-        }
-      } else if (error instanceof Error) {
-        showToast(`Unexpected error: ${error.message}`, 'error');
-      } else {
-        showToast('An unknown error occurred.', 'error');
-      }
+      showToast(`Failed to ${dialogMode === 'add' ? 'add' : 'update'} ward. Please try again.`, 'error');
     }
   };
 
@@ -127,7 +108,7 @@ const WardsDisplay: React.FC = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
       });
       showToast('Ward deleted successfully.', 'success');
-      loadWards();
+      loadWards();  // Reload wards after deletion
       handleCloseDialog();
     } catch (error) {
       showToast('Failed to delete ward. Please try again.', 'error');
@@ -135,7 +116,7 @@ const WardsDisplay: React.FC = () => {
   };
 
   return (
-    <Box className="p-6 max-w-full overflow-auto">
+    <Box className="p-6 max-w-full overflow-auto dark:bg-boxdark min-h-screen">
       <Box className="flex flex-col md:flex-row justify-between items-center mb-6">
         <div>
           <Typography variant="h4" component="h1" gutterBottom className="text-primary font-semibold">
@@ -161,9 +142,9 @@ const WardsDisplay: React.FC = () => {
           <CircularProgress className="text-primary" />
         </Box>
       ) : wards.length === 0 ? (
-        <FallbackWards />
+        <FallbackWards />  // Show a fallback view if no wards are available
       ) : (
-        <TableContainer component={Paper} className="rounded-lg shadow-md overflow-hidden">
+        <TableContainer component={Paper} className="rounded-lg shadow-md overflow-auto no-scrollbar dark:bg-boxdark">
           <Table>
             <TableHead>
               <TableRow className="bg-primary text-white">
@@ -176,7 +157,7 @@ const WardsDisplay: React.FC = () => {
             </TableHead>
             <TableBody>
               {wards.map((ward) => (
-                <TableRow key={ward.id} className="hover:bg-gray-100 transition-all duration-300 ease-in-out">
+                <TableRow key={ward.id} className="hover:bg-gray-100 transition-all duration-300 ease-in-out dark:bg-boxdark dark:hover:bg-strokedark">
                   <TableCell>{ward.ward_name}</TableCell>
                   <TableCell>{ward.description}</TableCell>
                   <TableCell>{ward.capacity}</TableCell>
@@ -202,17 +183,26 @@ const WardsDisplay: React.FC = () => {
         </TableContainer>
       )}
 
-      <Dialog open={openDialog} onClose={handleCloseDialog} className="rounded-lg">
+      <Dialog 
+        open={openDialog} 
+        onClose={handleCloseDialog} 
+        className="rounded-lg"
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          className: "dark:bg-boxdark bg-whiten transition-all duration-300 ease-in-out"
+        }}
+      >
         <DialogTitle className="text-primary font-semibold">
           {dialogMode === 'add' ? 'Add New Ward' : dialogMode === 'edit' ? 'Edit Ward' : 'Delete Ward'}
         </DialogTitle>
         <DialogContent>
           {dialogMode === 'delete' ? (
-            <DialogContentText className="text-body">
+            <Typography className="text-body dark:text-bodydark">
               Are you sure you want to delete this ward? This action cannot be undone.
-            </DialogContentText>
+            </Typography>
           ) : (
-            <Box component="form" onSubmit={handleSubmit(onSubmit)} className="mt-4">
+            <Box component="form" onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
               <TextField
                 fullWidth
                 margin="normal"
@@ -220,7 +210,7 @@ const WardsDisplay: React.FC = () => {
                 {...register('ward_name')}
                 error={!!errors.ward_name}
                 helperText={errors.ward_name?.message}
-                className="rounded-lg"
+                className="rounded-lg dark:bg-boxdark"
               />
               <TextField
                 fullWidth
@@ -229,7 +219,7 @@ const WardsDisplay: React.FC = () => {
                 {...register('description')}
                 error={!!errors.description}
                 helperText={errors.description?.message}
-                className="rounded-lg"
+                className="rounded-lg dark:bg-boxdark"
               />
               <TextField
                 fullWidth
@@ -239,7 +229,7 @@ const WardsDisplay: React.FC = () => {
                 {...register('capacity')}
                 error={!!errors.capacity}
                 helperText={errors.capacity?.message}
-                className="rounded-lg"
+                className="rounded-lg dark:bg-boxdark"
               />
               <TextField
                 fullWidth
@@ -249,13 +239,15 @@ const WardsDisplay: React.FC = () => {
                 {...register('floor_number')}
                 error={!!errors.floor_number}
                 helperText={errors.floor_number?.message}
-                className="rounded-lg"
+                className="rounded-lg dark:bg-boxdark"
               />
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog} className="text-graydark hover:text-graydark-dark transition-all duration-300 ease-in-out">Cancel</Button>
+          <Button onClick={handleCloseDialog} className="text-graydark hover:text-graydark-dark transition-all duration-300 ease-in-out">
+            Cancel
+          </Button>
           {dialogMode === 'delete' ? (
             <Button onClick={() => currentWard && handleDelete(currentWard.id)} color="error" className="text-danger hover:text-danger-dark transition-all duration-300 ease-in-out">
               Delete

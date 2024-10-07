@@ -1,4 +1,5 @@
 import React from 'react';
+import { Paper, Typography, List, ListItem, ListItemText, Divider, Box } from '@mui/material';
 
 interface Ward {
   id: number;
@@ -80,20 +81,74 @@ export const defaultWards: Ward[] = [
     capacity: 22,
     floor_number: 10,
   },
+  {
+    id: 11,
+    ward_name: "Burns Ward",
+    description: "Default Burns Treatment Ward",
+    capacity: 12,
+    floor_number: 11,
+  },
+  {
+    id: 12,
+    ward_name: "Neonatal Ward",
+    description: "Default Neonatal Care Ward",
+    capacity: 10,
+    floor_number: 12,
+  },
+  {
+    id: 13,
+    ward_name: "Orthopedic Ward",
+    description: "Default Orthopedic Care Ward",
+    capacity: 20,
+    floor_number: 13,
+  },
+  {
+    id: 14,
+    ward_name: "Renal Ward",
+    description: "Default Renal Treatment Ward",
+    capacity: 15,
+    floor_number: 14,
+  },
+  {
+    id: 15,
+    ward_name: "Gastroenterology Ward",
+    description: "Default Gastroenterology Care Ward",
+    capacity: 18,
+    floor_number: 15,
+  },
 ];
 
 const FallbackWards: React.FC = () => {
   return (
-    <div>
-      <p>This is a fallback wards component. The wards listed here are default:</p>
-      <ul>
-        {defaultWards.map((ward) => (
-          <li key={ward.id}>
-            {ward.ward_name} - {ward.description}, Capacity: {ward.capacity}, Floor: {ward.floor_number}
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Box className="mt-6 dark:bg-boxdark p-4 rounded-lg shadow-md">
+      <Paper elevation={3} className="p-4 dark:bg-boxdark bg-whiten rounded-lg">
+        <Typography variant="h6" gutterBottom className="text-primary dark:text-bodydark font-semibold">
+          Default Wards (Fallback)
+        </Typography>
+        <Typography variant="body2" gutterBottom className="text-body dark:text-bodydark">
+          Below is a list of default wards that are displayed when no real wards are retrieved.
+        </Typography>
+        <Divider className="my-2" />
+        <List>
+          {defaultWards.map((ward) => (
+            <React.Fragment key={ward.id}>
+              <ListItem>
+                <ListItemText
+                  primary={ward.ward_name}
+                  secondary={
+                    <>
+                      {ward.description}, Capacity: {ward.capacity}, Floor: {ward.floor_number}
+                    </>
+                  }
+                  className="dark:text-bodydark"
+                />
+              </ListItem>
+              <Divider />
+            </React.Fragment>
+          ))}
+        </List>
+      </Paper>
+    </Box>
   );
 };
 
