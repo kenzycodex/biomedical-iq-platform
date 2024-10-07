@@ -96,12 +96,12 @@ const SignIn: React.FC = () => {
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('userProfile');
         
-        // Make the API call for login with a 15-second timeout
+        // Make the API call for login with a 50-second timeout
         const response = await axios.post(`${apiUrl}/auth/login`, data, {
           headers: {
             "Content-Type": "application/json",
           },
-          timeout: 30000,  // Set the timeout to 30 seconds
+          timeout: 50000,  // Set the timeout to 50 seconds
         });
     
         if (response.status === 200) {
@@ -113,13 +113,13 @@ const SignIn: React.FC = () => {
           // Save tokens and manage session
           handleSession(access_token, refresh_token);
     
-          showToast("Login successful!", "success");
-    
           // Clear form on success
           reset();
+
+          router.push("/dashboard")
           
           // Redirect after 1 seconds
-          setTimeout(() => router.push("/dashboard"), 1000);
+          setTimeout(() => showToast("Login successful!", "success"), 1000);
         }
       } catch (err: any) {
         if (axios.isAxiosError(err)) {

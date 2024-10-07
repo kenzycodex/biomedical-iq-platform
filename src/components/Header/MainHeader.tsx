@@ -27,16 +27,13 @@ const MainHeader = () => {
         {/* Navigation Links, Go Back Button, and Dark Mode Toggler */}
         <div className="flex items-center gap-4">
           <nav className="hidden lg:flex items-center gap-4">
-            <Link href="/about" className="text-gray-800 dark:text-white hover:underline">
-              About
-            </Link>
-            <Link href="/contact" className="text-gray-800 dark:text-white hover:underline">
-              Contact
+            <Link href="https://biomedicaliq.vercel.app" className="text-gray-800 dark:text-white hover:underline">
+              Home
             </Link>
           </nav>
           
           {/* Go Back Button (visible on all screen sizes) */}
-          <button
+          {/* <button
             onClick={() => router.back()}
             className="flex items-center text-gray-800 dark:text-white hover:underline"
             aria-label="Go back"
@@ -46,7 +43,7 @@ const MainHeader = () => {
   style={{ fontWeight: 'bold', strokeWidth: 5 }} 
 />
             <span className="hidden sm:inline">Go Back</span>
-          </button>
+          </button> */}
           
           <MainModeSwitcher />
         </div>

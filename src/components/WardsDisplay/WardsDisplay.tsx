@@ -13,12 +13,14 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 
-// Validation schema for Ward form using Yup
+// Import FallbackWards component and defaultWards data
+import FallbackWards, { defaultWards } from "./FallbackWards";
+
 const wardSchema = yup.object().shape({
   ward_name: yup.string().required("Ward name is required"),
   description: yup.string().required("Description is required").max(255, "Description must be less than 255 characters"),
-  capacity: yup.number().typeError("Capacity must be a number").required("Capacity is required").positive("Capacity must be positive"),
-  floor_number: yup.number().typeError("Floor number must be a number").required("Floor number is required").positive("Floor number must be positive"),
+  capacity: yup.number().typeError("Capacity must be a number").required("Capacity is required").positive("Capacity must be positive").integer(),
+  floor_number: yup.number().typeError("Floor number must be a number").required("Floor number is required").positive("Floor number must be positive").integer(),
 });
 
 interface WardFormData {
@@ -29,7 +31,7 @@ interface WardFormData {
 }
 
 const WardsDisplay: React.FC = () => {
-  const [wards, setWards] = useState<any[]>([]);
+  const [wards, setWards] = useState<any[]>(defaultWards); // Set default wards initially
   const [isLoading, setIsLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<'add' | 'edit' | 'delete'>('add');
@@ -43,27 +45,37 @@ const WardsDisplay: React.FC = () => {
     loadWards();
   }, []);
 
-  // Load wards from backend
+  // Load wards from backend with improved error handling
   const loadWards = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/wards/list`, {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/ward/list`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
       });
-      setWards(response.data.wards);
+      if (response.data.wards.length > 0) {
+        setWards(response.data.wards);  // Overwrite default wards with fetched data
+      }
     } catch (error) {
-      showToast('Failed to fetch wards. Please try again.', 'error');
+      if (axios.isAxiosError(error)) {
+        if (error.response && error.response.status === 403) {
+          showToast('You do not have permission to view wards.', 'error');
+        } else {
+          showToast('Failed to fetch wards. Showing default wards.', 'error');
+        }
+      } else if (error instanceof Error) {
+        showToast(`Unexpected error: ${error.message}. Showing default wards.`, 'error');
+      } else {
+        showToast('An unknown error occurred. Showing default wards.', 'error');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle dialog open
   const handleOpenDialog = (mode: 'add' | 'edit' | 'delete', ward: any = null) => {
     setDialogMode(mode);
     setCurrentWard(ward);
     if (mode === 'edit' && ward) {
-      // Set form values to the selected ward for editing
       setValue('ward_name', ward.ward_name);
       setValue('description', ward.description);
       setValue('capacity', ward.capacity);
@@ -79,31 +91,39 @@ const WardsDisplay: React.FC = () => {
     setCurrentWard(null);
   };
 
-  // Handle form submission for adding or editing wards
   const onSubmit: SubmitHandler<WardFormData> = async (data) => {
     try {
       if (dialogMode === 'add') {
-        await axios.post(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/wards/create`, data, {
+        await axios.post(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/ward/create`, data, {
           headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
         });
         showToast('Ward added successfully.', 'success');
       } else if (dialogMode === 'edit' && currentWard) {
-        await axios.put(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/wards/update/${currentWard.id}`, data, {
+        await axios.put(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/ward/update/${currentWard.id}`, data, {
           headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
         });
         showToast('Ward updated successfully.', 'success');
       }
       handleCloseDialog();
-      loadWards();
+      loadWards();  // Reload wards after adding/updating
     } catch (error) {
-      showToast(`Failed to ${dialogMode === 'add' ? 'add' : 'update'} ward. Please try again.`, 'error');
+      if (axios.isAxiosError(error)) {
+        if (error.response && error.response.status === 409) {
+          showToast('Ward with this name already exists.', 'error');
+        } else {
+          showToast(`Failed to ${dialogMode === 'add' ? 'add' : 'update'} ward. Please try again.`, 'error');
+        }
+      } else if (error instanceof Error) {
+        showToast(`Unexpected error: ${error.message}`, 'error');
+      } else {
+        showToast('An unknown error occurred.', 'error');
+      }
     }
   };
 
-  // Handle ward deletion
   const handleDelete = async (wardId: number) => {
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/wards/delete/${wardId}`, {
+      await axios.delete(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/ward/delete/${wardId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
       });
       showToast('Ward deleted successfully.', 'success');
@@ -141,9 +161,7 @@ const WardsDisplay: React.FC = () => {
           <CircularProgress className="text-primary" />
         </Box>
       ) : wards.length === 0 ? (
-        <Box className="text-center text-body dark:text-bodydark p-6">
-          No wards available. Please add a ward to get started.
-        </Box>
+        <FallbackWards />
       ) : (
         <TableContainer component={Paper} className="rounded-lg shadow-md overflow-hidden">
           <Table>
