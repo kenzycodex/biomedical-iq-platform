@@ -89,12 +89,12 @@ const SignUp: React.FC = () => {
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('userProfile');
         
-        // Make the API call for registration with a 15-second timeout
+        // Make the API call for registration with a 50-second timeout
         const response = await axios.post(`${apiUrl}/auth/register`, data, {
           headers: {
             'Content-Type': 'application/json',
           },
-          timeout: 30000,  // Set the timeout to 15 seconds
+          timeout: 50000,  // Set the timeout to 50 seconds
         });
     
         if (response.status === 201) {

@@ -6,16 +6,21 @@
 
 @layer base {
     body {
-        @apply relative z-1 bg-whiten font-satoshi text-base font-normal text-body; /* Prevent overflow */
+        @apply relative z-1 bg-whiten dark:bg-boxdark text-base font-normal text-body; 
     }
 
-    /* Add this rule for smaller screens */
     @media (max-width: 768px) {
         html, body {
             width: 100vw; /* Lock width to viewport */
             max-width: 100%; /* Prevent content from exceeding width */
             position: relative; /* Establish positioning context */
         }
+    }
+}
+
+@layer base {
+    html, body {
+        @apply min-h-screen;
     }
 }
 

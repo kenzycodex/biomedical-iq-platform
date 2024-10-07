@@ -163,16 +163,12 @@ const DropdownUser = () => {
               {/* SVG content for logout */}
             </svg>
             {isLoading ? (
-               <div className="flex justify-center items-center">
-                 <RingLoader
-                   color="#ffffff"
-                   size={22}
-                   loading={isLoading}
-                 />
-               </div>
-             ) : (
-               "Sign Out"
-             )}
+              <div className="flex justify-center items-center">
+                Signing out...
+              </div>
+            ) : (
+              "Sign Out"
+            )}
           </button>
         </div>
       )}
