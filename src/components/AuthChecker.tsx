@@ -11,6 +11,25 @@ export default function AuthChecker() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const router = useRouter();
 
+  // Function to handle token storage and session persistence
+  const handleSession = (accessToken: string, refreshToken: string) => {
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+  };
+
+  // Fetch and cache user wards silently
+  const fetchAndCacheWardData = async (accessToken: string) => {
+    try {
+      const wardResponse = await axios.get(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/ward/list`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const wards = wardResponse.data.wards;
+      localStorage.setItem('wardData', JSON.stringify(wards));  // Cache ward data
+    } catch (error) {
+      console.error('Ward fetch error:', error);  // Handle error silently
+    }
+  };
+
   // Function to handle token refresh and session check
   const checkSession = async () => {
     const accessToken = localStorage.getItem("accessToken");
@@ -32,9 +51,11 @@ export default function AuthChecker() {
 
         if (response.status === 200) {
           const { access_token } = response.data;
-          localStorage.setItem("accessToken", access_token); // Store new access token
+        //   localStorage.setItem("accessToken", access_token); // Store new access token
+          handleSession(response.data.access_token, refreshToken!);
+          fetchAndCacheWardData(access_token);
           setIsAuthenticated(true);
-          router.push("/dashboard");
+          router.push("/dashboard"); // Redirect user to dashboard
         } else {
           throw new Error("Token refresh failed");
         }

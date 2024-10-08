@@ -69,34 +69,34 @@ const SignIn: React.FC = () => {
     }
   };
 
-  // Automatic token refresh on page reload or revisit
-  useEffect(() => {
-    const refreshToken = localStorage.getItem("refreshToken");
+  // // Automatic token refresh on page reload or revisit
+  // useEffect(() => {
+  //   const refreshToken = localStorage.getItem("refreshToken");
 
-    const refreshAccessToken = async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
-        const response = await axios.post(`${apiUrl}/auth/refresh`, {}, {
-          headers: {
-            Authorization: `Bearer ${refreshToken}`,
-          },
-        });
-        if (response.status === 200) {
-          handleSession(response.data.access_token, refreshToken!);
-          router.push("/dashboard"); // Redirect user to dashboard
-        }
-      } catch (err) {
-        // If token refresh fails, clear localStorage and stay on sign-in page
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-      }
-    };
+  //   const refreshAccessToken = async () => {
+  //     try {
+  //       const apiUrl = process.env.NEXT_PUBLIC_FLASK_API_URL || "https://biomedical-iq-backend.onrender.com";
+  //       const response = await axios.post(`${apiUrl}/auth/refresh`, {}, {
+  //         headers: {
+  //           Authorization: `Bearer ${refreshToken}`,
+  //         },
+  //       });
+  //       if (response.status === 200) {
+  //         handleSession(response.data.access_token, refreshToken!);
+  //         router.push("/dashboard"); // Redirect user to dashboard
+  //       }
+  //     } catch (err) {
+  //       // If token refresh fails, clear localStorage and stay on sign-in page
+  //       localStorage.removeItem("accessToken");
+  //       localStorage.removeItem("refreshToken");
+  //     }
+  //   };
 
-    // Only attempt to refresh token if we're not already on the sign-in page
-    if (refreshToken && pathname !== "/auth/signin") {
-      refreshAccessToken();
-    }
-  }, [pathname, router]); // Include pathname and router in dependency array
+  //   // Only attempt to refresh token if we're not already on the sign-in page
+  //   if (refreshToken && pathname !== "/auth/signin") {
+  //     refreshAccessToken();
+  //   }
+  // }, [pathname, router]); // Include pathname and router in dependency array
 
   // Handle form submission for login
   const onSubmit: SubmitHandler<FormData> = async (data) => {
