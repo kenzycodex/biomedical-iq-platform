@@ -56,6 +56,19 @@ const SignIn: React.FC = () => {
     localStorage.setItem("refreshToken", refreshToken);
   };
 
+  // Fetch and cache user wards silently
+  const fetchAndCacheWardData = async (accessToken: string) => {
+    try {
+      const wardResponse = await axios.get(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/ward/list`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const wards = wardResponse.data.wards;
+      localStorage.setItem('wardData', JSON.stringify(wards));  // Cache ward data
+    } catch (error) {
+      console.error('Ward fetch error:', error);  // Handle error silently
+    }
+  };
+
   // Automatic token refresh on page reload or revisit
   useEffect(() => {
     const refreshToken = localStorage.getItem("refreshToken");
@@ -97,6 +110,7 @@ const SignIn: React.FC = () => {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('userProfile');
+        localStorage.removeItem('wardData');
         
         // Make the API call for login with a 50-second timeout
         const response = await axios.post(`${apiUrl}/auth/login`, data, {
@@ -114,6 +128,9 @@ const SignIn: React.FC = () => {
     
           // Save tokens and manage session
           handleSession(access_token, refresh_token);
+
+          // Fetch wards silently after login success
+          fetchAndCacheWardData(access_token);
     
           // Clear form on success
           reset();

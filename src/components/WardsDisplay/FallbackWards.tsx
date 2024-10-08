@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paper, Typography, List, ListItem, ListItemText, Divider, Box } from '@mui/material';
+import { Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Divider, Box } from '@mui/material';
 
 interface Ward {
   id: number;
@@ -126,27 +126,31 @@ const FallbackWards: React.FC = () => {
           Default Wards (Fallback)
         </Typography>
         <Typography variant="body2" gutterBottom className="text-body dark:text-bodydark">
-          Below is a list of default wards that are displayed when no real wards are retrieved.
+          No real data available. Displaying default wards as placeholders.
         </Typography>
         <Divider className="my-2" />
-        <List>
-          {defaultWards.map((ward) => (
-            <React.Fragment key={ward.id}>
-              <ListItem>
-                <ListItemText
-                  primary={ward.ward_name}
-                  secondary={
-                    <>
-                      {ward.description}, Capacity: {ward.capacity}, Floor: {ward.floor_number}
-                    </>
-                  }
-                  className="dark:text-bodydark"
-                />
-              </ListItem>
-              <Divider />
-            </React.Fragment>
-          ))}
-        </List>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell className="font-semibold">Ward Name</TableCell>
+                <TableCell className="font-semibold">Description</TableCell>
+                <TableCell className="font-semibold">Capacity</TableCell>
+                <TableCell className="font-semibold">Floor Number</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {defaultWards.map((ward) => (
+                <TableRow key={ward.id}>
+                  <TableCell>{ward.ward_name}</TableCell>
+                  <TableCell>{ward.description}</TableCell>
+                  <TableCell>{ward.capacity}</TableCell>
+                  <TableCell>{ward.floor_number}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Paper>
     </Box>
   );

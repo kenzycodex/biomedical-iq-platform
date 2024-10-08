@@ -1,21 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
   Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, 
   IconButton, Typography, Box, CircularProgress
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, Visibility as EyeIcon, Add as AddIcon } from '@mui/icons-material';
 import { showToast } from "@/components/Notifications/ToastNotification";
 import axios from 'axios';
 import { useForm, SubmitHandler } from "react-hook-form";
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import FallbackWards from "./FallbackWards";  // Import the fallback component
 
-// Import FallbackWards component
-import FallbackWards from "./FallbackWards";  // No need for defaultWards anymore
-
+// Schema validation using Yup
 const wardSchema = yup.object().shape({
   ward_name: yup.string().required("Ward name is required"),
   description: yup.string().required("Description is required").max(255, "Description must be less than 255 characters"),
@@ -24,6 +23,7 @@ const wardSchema = yup.object().shape({
 });
 
 interface WardFormData {
+  id?: number;
   ward_name: string;
   description: string;
   capacity: number;
@@ -31,41 +31,46 @@ interface WardFormData {
 }
 
 const WardsDisplay: React.FC = () => {
-  const [wards, setWards] = useState<any[]>([]);  // Initialize with an empty array, no default wards
+  const [wards, setWards] = useState<WardFormData[]>([]);  // Initialize with an empty array, no default wards
   const [isLoading, setIsLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<'add' | 'edit' | 'delete'>('add');
-  const [currentWard, setCurrentWard] = useState<any>(null);
+  const [currentWard, setCurrentWard] = useState<WardFormData | null>(null);
 
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<WardFormData>({
     resolver: yupResolver(wardSchema),
-  });
+  });  
 
-  useEffect(() => {
-    loadWards();
-  }, []);
-
-  const loadWards = async () => {
+  // Fetch Wards, prioritize localStorage if available
+  const fetchWards = useCallback(async () => {
     setIsLoading(true);
+    const cachedWards = localStorage.getItem('wardData');
+    if (cachedWards) {
+      setWards(JSON.parse(cachedWards));
+    }
+
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/ward/list`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
       });
-      if (response.data.wards.length > 0) {
-        setWards(response.data.wards);  // Replace default wards with fetched data
-      } else {
-        setWards([]);  // Ensure no default wards remain if nothing is returned
-      }
+      setWards(response.data.wards);
+      localStorage.setItem('wardData', JSON.stringify(response.data.wards));  // Cache updated wards
     } catch (error) {
-      showToast('Failed to fetch wards. Showing default view.', 'error');
+      console.error('Failed to load wards', error);  // Handle silently
+      showToast('Failed to fetch wards. Showing default view.', 'error'); // Make noise..lol
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const handleOpenDialog = (mode: 'add' | 'edit' | 'delete', ward: any = null) => {
+  useEffect(() => {
+    fetchWards();
+  }, [fetchWards]);
+
+  const handleOpenDialog = (mode: 'add' | 'edit' | 'delete', ward: WardFormData | null = null) => {
     setDialogMode(mode);
     setCurrentWard(ward);
+
     if (mode === 'edit' && ward) {
       setValue('ward_name', ward.ward_name);
       setValue('description', ward.description);
@@ -83,35 +88,47 @@ const WardsDisplay: React.FC = () => {
   };
 
   const onSubmit: SubmitHandler<WardFormData> = async (data) => {
+    setIsLoading(true);
     try {
       if (dialogMode === 'add') {
-        await axios.post(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/ward/create`, data, {
+        const response = await axios.post(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/ward/create`, data, {
           headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
         });
         showToast('Ward added successfully.', 'success');
+        setWards([...wards, response.data.ward]);  // Optimistically update UI
+        localStorage.setItem('wardData', JSON.stringify([...wards, response.data.ward]));  // Cache updated wards
       } else if (dialogMode === 'edit' && currentWard) {
-        await axios.put(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/ward/update/${currentWard.id}`, data, {
+        const response = await axios.put(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/ward/update/${currentWard.id}`, data, {
           headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
         });
         showToast('Ward updated successfully.', 'success');
+        const updatedWards = wards.map((ward) => (ward.id === currentWard.id ? response.data.ward : ward));
+        setWards(updatedWards);
+        localStorage.setItem('wardData', JSON.stringify(updatedWards));  // Cache updated wards
       }
       handleCloseDialog();
-      loadWards();  // Reload wards after adding/updating to reflect changes
     } catch (error) {
-      showToast(`Failed to ${dialogMode === 'add' ? 'add' : 'update'} ward. Please try again.`, 'error');
+      console.error(`Failed to ${dialogMode === 'add' ? 'add' : 'update'} ward`, error);  // Handle error silently
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleDelete = async (wardId: number) => {
+    setIsLoading(true);
     try {
       await axios.delete(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/ward/delete/${wardId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
       });
       showToast('Ward deleted successfully.', 'success');
-      loadWards();  // Reload wards after deletion
+      const filteredWards = wards.filter(ward => ward.id !== wardId);
+      setWards(filteredWards);
+      localStorage.setItem('wardData', JSON.stringify(filteredWards));  // Cache updated wards
       handleCloseDialog();
     } catch (error) {
-      showToast('Failed to delete ward. Please try again.', 'error');
+      console.error('Failed to delete ward', error);  // Handle error silently
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -170,6 +187,12 @@ const WardsDisplay: React.FC = () => {
                       <EditIcon />
                     </IconButton>
                     <IconButton
+                      onClick={() => window.location.href = `/ward/${ward.id}`}
+                      className="text-info hover:text-info-dark transition-all duration-300 ease-in-out"
+                    >
+                      <EyeIcon />
+                    </IconButton>
+                    <IconButton
                       onClick={() => handleOpenDialog('delete', ward)}
                       className="text-danger hover:text-danger-dark transition-all duration-300 ease-in-out"
                     >
@@ -183,6 +206,7 @@ const WardsDisplay: React.FC = () => {
         </TableContainer>
       )}
 
+      {/* Dialog for add/edit/delete actions */}
       <Dialog 
         open={openDialog} 
         onClose={handleCloseDialog} 
@@ -249,7 +273,11 @@ const WardsDisplay: React.FC = () => {
             Cancel
           </Button>
           {dialogMode === 'delete' ? (
-            <Button onClick={() => currentWard && handleDelete(currentWard.id)} color="error" className="text-danger hover:text-danger-dark transition-all duration-300 ease-in-out">
+            <Button
+              onClick={() => currentWard?.id !== undefined && handleDelete(currentWard.id)}  // Check if `id` is not undefined
+              color="error"
+              className="text-danger hover:text-danger-dark transition-all duration-300 ease-in-out"
+            >
               Delete
             </Button>
           ) : (
