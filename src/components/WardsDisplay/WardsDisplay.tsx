@@ -164,7 +164,7 @@ const WardsDisplay: React.FC = () => {
         <TableContainer component={Paper} className="rounded-lg shadow-md overflow-auto no-scrollbar dark:bg-boxdark">
           <Table>
             <TableHead>
-              <TableRow className="bg-primary text-white">
+              <TableRow className="bg-primary text-body dark:text-bodydark">
                 <TableCell className="font-semibold text-white">Name</TableCell>
                 <TableCell className="font-semibold text-white">Description</TableCell>
                 <TableCell className="font-semibold text-white">Capacity</TableCell>
